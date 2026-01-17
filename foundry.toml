@@ -1,0 +1,71 @@
+# =============================================================================
+# RecurPay Protocol - Foundry Configuration
+# =============================================================================
+
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+solc = "0.8.24"
+evm_version = "cancun"
+
+# Compilation settings
+auto_detect_solc = false
+bytecode_hash = "ipfs"
+cbor_metadata = true
+sparse_mode = false
+
+# Testing settings
+fuzz = { runs = 256, max_test_rejects = 65536 }
+invariant = { runs = 256, depth = 15, fail_on_revert = false }
+verbosity = 2
+
+# Gas reporting
+gas_reports = ["*"]
+gas_reports_ignore = []
+
+# Formatter settings
+[profile.default.fmt]
+bracket_spacing = true
+int_types = "long"
+line_length = 100
+multiline_func_header = "attributes_first"
+number_underscore = "thousands"
+quote_style = "double"
+single_line_statement_blocks = "preserve"
+tab_width = 4
+wrap_comments = true
+
+# =============================================================================
+# Network Configuration (Base)
+# =============================================================================
+
+[rpc_endpoints]
+base = "${BASE_RPC_URL}"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+localhost = "http://127.0.0.1:8545"
+
+[etherscan]
+base = { key = "${BASESCAN_API_KEY}", url = "https://api.basescan.org/api" }
+base_sepolia = { key = "${BASESCAN_API_KEY}", url = "https://api-sepolia.basescan.org/api" }
+
+# =============================================================================
+# CI/Production Profile
+# =============================================================================
+
+[profile.ci]
+fuzz = { runs = 10000, max_test_rejects = 65536 }
+invariant = { runs = 1000, depth = 50 }
+verbosity = 3
+
+# =============================================================================
+# Local Development Profile
+# =============================================================================
+
+[profile.local]
+optimizer = false
+fuzz = { runs = 100 }
+verbosity = 4
