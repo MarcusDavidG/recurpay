@@ -23,6 +23,7 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
     mapping(address => uint256[]) private _subscriberSubscriptions;
     mapping(uint256 => address[]) private _planSubscribers;
     mapping(address => mapping(uint256 => uint256)) private _subscriptionIds;
+    mapping(address => SubscriberProfile) private _subscriberProfiles;
     
     // =========================================================================
     // Events
@@ -79,6 +80,14 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         _subscriberSubscriptions[subscriber].push(subscriptionId);
         _planSubscribers[planId].push(subscriber);
 
+        // Update subscriber profile
+        SubscriberProfile storage profile = _subscriberProfiles[subscriber];
+        if (profile.firstSubscriptionDate == 0) {
+            profile.firstSubscriptionDate = startTime;
+        }
+        profile.subscriptionCount++;
+        profile.activeSubscriptions++;
+
         emit ISubscriberRegistry.SubscriptionCreated(
             subscriptionId,
             planId,
@@ -102,6 +111,8 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         uint64 pausedUntil = (pauseDuration == 0) ? type(uint64).max : uint64(block.timestamp) + pauseDuration;
         sub.pausedUntil = pausedUntil;
 
+        _subscriberProfiles[sub.subscriber].activeSubscriptions--;
+
         emit ISubscriberRegistry.SubscriptionPaused(subscriptionId, pausedUntil);
     }
 
@@ -117,6 +128,8 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         sub.status = SubscriptionStatus.Active;
         sub.pausedUntil = 0;
 
+        _subscriberProfiles[sub.subscriber].activeSubscriptions++;
+
         emit ISubscriberRegistry.SubscriptionResumed(subscriptionId);
     }
 
@@ -129,6 +142,9 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         Subscription storage sub = _subscriptions[subscriptionId];
         if (sub.status == SubscriptionStatus.Cancelled) revert ISubscriberRegistry.AlreadyCancelled();
 
+        if(sub.status == SubscriptionStatus.Active || sub.status == SubscriptionStatus.Paused) {
+            _subscriberProfiles[sub.subscriber].activeSubscriptions--;
+        }
         sub.status = SubscriptionStatus.Cancelled;
 
         emit ISubscriberRegistry.SubscriptionCancelled(subscriptionId, "USER", 0);
@@ -146,6 +162,12 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
 
         SubscriptionStatus oldStatus = sub.status;
         if (oldStatus == newStatus) return;
+
+        if (oldStatus == SubscriptionStatus.Active && (newStatus == SubscriptionStatus.Paused || newStatus == SubscriptionStatus.Cancelled)) {
+            _subscriberProfiles[sub.subscriber].activeSubscriptions--;
+        } else if (oldStatus == SubscriptionStatus.Paused && newStatus == SubscriptionStatus.Active) {
+            _subscriberProfiles[sub.subscriber].activeSubscriptions++;
+        }
 
         sub.status = newStatus;
         emit ISubscriberRegistry.SubscriptionStatusChanged(subscriptionId, oldStatus, newStatus);
@@ -168,6 +190,8 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         sub.currentPeriodStart = sub.currentPeriodEnd;
         sub.currentPeriodEnd += plan.billingPeriod;
 
+        _subscriberProfiles[sub.subscriber].totalSpent += amount;
+
         emit ISubscriberRegistry.SubscriptionRenewed(subscriptionId, sub.currentPeriodEnd);
     }
 
@@ -183,52 +207,82 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
     }
 
     // =========================================================================
-    // External Functions - View (To be implemented)
+    // External Functions - View
     // =========================================================================
 
+    /// @inheritdoc ISubscriberRegistry
     function getSubscription(
         uint256 subscriptionId
     ) external view returns (Subscription memory subscription) {
-        revert("Not Implemented");
+        if (_subscriptions[subscriptionId].id == 0) revert ISubscriberRegistry.SubscriptionNotFound();
+        return _subscriptions[subscriptionId];
     }
 
+    /// @inheritdoc ISubscriberRegistry
     function getSubscriberSubscriptions(
         address subscriber
     ) external view returns (uint256[] memory subscriptionIds) {
-        revert("Not Implemented");
+        return _subscriberSubscriptions[subscriber];
     }
 
+    /// @inheritdoc ISubscriberRegistry
     function getActiveSubscriptions(
         address subscriber
     ) external view returns (uint256[] memory subscriptionIds) {
-        revert("Not Implemented");
+        uint256[] memory allSubscriptions = _subscriberSubscriptions[subscriber];
+        uint256 activeCount = 0;
+        for (uint i = 0; i < allSubscriptions.length; i++) {
+            if (_subscriptions[allSubscriptions[i]].status == SubscriptionStatus.Active) {
+                activeCount++;
+            }
+        }
+
+        if (activeCount == 0) {
+            return new uint256[](0);
+        }
+
+        uint256[] memory activeSubscriptions = new uint256[](activeCount);
+        uint256 index = 0;
+        for (uint i = 0; i < allSubscriptions.length; i++) {
+            if (_subscriptions[allSubscriptions[i]].status == SubscriptionStatus.Active) {
+                activeSubscriptions[index++] = allSubscriptions[i];
+            }
+        }
+        return activeSubscriptions;
     }
 
+    /// @inheritdoc ISubscriberRegistry
     function getSubscriberProfile(
         address subscriber
     ) external view returns (SubscriberProfile memory profile) {
-        revert("Not Implemented");
+        return _subscriberProfiles[subscriber];
     }
 
+    /// @inheritdoc ISubscriberRegistry
     function getPlanSubscribers(
         uint256 planId
     ) external view returns (address[] memory subscribers) {
-        revert("Not Implemented");
+        return _planSubscribers[planId];
     }
 
+    /// @inheritdoc ISubscriberRegistry
     function getPlanSubscriberCount(uint256 planId) external view returns (uint256 count) {
-        revert("Not Implemented");
+        return _planSubscribers[planId].length;
     }
 
+    /// @inheritdoc ISubscriberRegistry
     function hasActiveSubscription(
         address subscriber,
         uint256 planId
     ) external view returns (bool isActive) {
-        revert("Not Implemented");
+        uint256 subscriptionId = _subscriptionIds[subscriber][planId];
+        if (subscriptionId == 0) return false;
+        return _subscriptions[subscriptionId].status == SubscriptionStatus.Active;
     }
 
+    /// @inheritdoc ISubscriberRegistry
     function totalSubscriptions() external view returns (uint256 count) {
-        revert("Not Implemented");
+        return _subscriptionCounter;
     }
     
     // =========================================================================
