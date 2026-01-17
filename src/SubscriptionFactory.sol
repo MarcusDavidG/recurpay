@@ -106,26 +106,28 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
     }
 
     // =========================================================================
-    // External Functions - View (To be implemented)
+    // External Functions - View
     // =========================================================================
+
+    /// @inheritdoc ISubscriptionFactory
     function getPlan(uint256 planId) external view returns (PlanConfig memory config) {
-        // To be implemented in commit 19
-        revert("Not implemented");
+        if (_plans[planId].creator == address(0)) revert ISubscriptionFactory.PlanNotFound();
+        return _plans[planId];
     }
-    
+
+    /// @inheritdoc ISubscriptionFactory
     function getPlanMetadata(uint256 planId) external view returns (PlanMetadata memory metadata) {
-        // To be implemented in commit 19
-        revert("Not implemented");
+        return _planMetadata[planId];
     }
 
+    /// @inheritdoc ISubscriptionFactory
     function getCreatorPlans(address creator) external view returns (uint256[] memory planIds) {
-        // To be implemented in commit 19
-        revert("Not implemented");
+        return _creatorPlans[creator];
     }
 
+    /// @inheritdoc ISubscriptionFactory
     function totalPlans() external view returns (uint256 count) {
-        // To be implemented in commit 19
-        revert("Not implemented");
+        return _planCounter;
     }
 
     // =========================================================================
