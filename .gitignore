@@ -1,0 +1,59 @@
+# Compiler files
+cache/
+out/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Docs
+docs/
+
+# Dotenv file
+.env
+.env.local
+.env.*.local
+
+# Coverage
+lcov.info
+coverage/
+
+# Node
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+*.log
+debug/
+
+# Gas snapshots
+.gas-snapshot
+
+# Foundry artifacts
+artifacts/
+
+# Build outputs
+build/
+dist/
+
+# Test artifacts
+test-results/
+
+# Deployment artifacts (keep broadcast for verification)
+deployments/localhost/
+
+# Private keys - NEVER commit these
+*.pem
+*.key
+secrets/
