@@ -69,16 +69,40 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
     }
 
     // =========================================================================
-    // External Functions - Plan Management (To be implemented)
+    // External Functions - Plan Management
     // =========================================================================
-    function updatePlanPrice(uint256 planId, uint256 newPrice) external pure {
-        // To be implemented in commit 18
-        revert("Not implemented");
+
+    /// @inheritdoc ISubscriptionFactory
+    function updatePlanPrice(uint256 planId, uint256 newPrice)
+        external
+        nonReentrant
+        whenNotPaused
+        _onlyPlanCreator(planId)
+    {
+        if (newPrice == 0) revert ISubscriptionFactory.InvalidPrice();
+
+        _plans[planId].price = newPrice;
+
+        emit ISubscriptionFactory.PlanUpdated(planId, newPrice, _plans[planId].active);
     }
 
-    function setPlanActive(uint256 planId, bool active) external pure {
-        // To be implemented in commit 18
-        revert("Not implemented");
+    /// @inheritdoc ISubscriptionFactory
+    function setPlanActive(uint256 planId, bool active)
+        external
+        nonReentrant
+        whenNotPaused
+        _onlyPlanCreator(planId)
+    {
+        PlanConfig storage plan = _plans[planId];
+        if (plan.active == active) return; // No change
+
+        plan.active = active;
+
+        if (!active) {
+            emit ISubscriptionFactory.PlanDeactivated(planId);
+        }
+
+        emit ISubscriptionFactory.PlanUpdated(planId, plan.price, active);
     }
 
     // =========================================================================
@@ -88,7 +112,7 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
         // To be implemented in commit 19
         revert("Not implemented");
     }
-
+    
     function getPlanMetadata(uint256 planId) external view returns (PlanMetadata memory metadata) {
         // To be implemented in commit 19
         revert("Not implemented");
@@ -103,4 +127,14 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
         // To be implemented in commit 19
         revert("Not implemented");
     }
-}
+
+    // =========================================================================
+    // Internal Functions & Modifiers
+    // =========================================================================
+
+    /// @notice Ensures the caller is the creator of the specified plan
+    modifier _onlyPlanCreator(uint256 planId) {
+        if (_plans[planId].creator == address(0)) revert ISubscriptionFactory.PlanNotFound();
+        if (_plans[planId].creator != msg.sender) revert ISubscriptionFactory.NotPlanCreator();
+        _;
+    }
