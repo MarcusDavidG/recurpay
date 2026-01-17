@@ -120,8 +120,18 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         emit ISubscriberRegistry.SubscriptionResumed(subscriptionId);
     }
 
-    function cancel(uint256 subscriptionId) external pure {
-        revert("Not Implemented");
+    /// @inheritdoc ISubscriberRegistry
+    function cancel(uint256 subscriptionId)
+        external
+        nonReentrant
+        _onlySubscriber(subscriptionId)
+    {
+        Subscription storage sub = _subscriptions[subscriptionId];
+        if (sub.status == SubscriptionStatus.Cancelled) revert ISubscriberRegistry.AlreadyCancelled();
+
+        sub.status = SubscriptionStatus.Cancelled;
+
+        emit ISubscriberRegistry.SubscriptionCancelled(subscriptionId, "USER", 0);
     }
     
     /// @inheritdoc ISubscriberRegistry
