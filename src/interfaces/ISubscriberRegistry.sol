@@ -42,6 +42,7 @@ interface ISubscriberRegistry {
         uint64 currentPeriodStart;
         uint64 currentPeriodEnd;
         uint64 lastPaymentDate;
+        uint64 pausedUntil;
         uint256 totalPaid;
     }
 

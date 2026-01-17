@@ -72,6 +72,7 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
             currentPeriodStart: startTime,
             currentPeriodEnd: startTime + plan.billingPeriod,
             lastPaymentDate: startTime,
+            pausedUntil: 0,
             totalPaid: 0 // Initial payment is handled by the processor
         });
 
@@ -88,12 +89,35 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         return subscriptionId;
     }
     
-    function pause(uint256 subscriptionId, uint32 pauseDuration) external pure {
-        revert("Not Implemented");
+    /// @inheritdoc ISubscriberRegistry
+    function pause(uint256 subscriptionId, uint32 pauseDuration)
+        external
+        nonReentrant
+        _onlySubscriber(subscriptionId)
+    {
+        Subscription storage sub = _subscriptions[subscriptionId];
+        if (sub.status != SubscriptionStatus.Active) revert ISubscriberRegistry.SubscriptionNotActive();
+
+        sub.status = SubscriptionStatus.Paused;
+        uint64 pausedUntil = (pauseDuration == 0) ? type(uint64).max : uint64(block.timestamp) + pauseDuration;
+        sub.pausedUntil = pausedUntil;
+
+        emit ISubscriberRegistry.SubscriptionPaused(subscriptionId, pausedUntil);
     }
 
-    function resume(uint256 subscriptionId) external pure {
-        revert("Not Implemented");
+    /// @inheritdoc ISubscriberRegistry
+    function resume(uint256 subscriptionId)
+        external
+        nonReentrant
+        _onlySubscriber(subscriptionId)
+    {
+        Subscription storage sub = _subscriptions[subscriptionId];
+        if (sub.status != SubscriptionStatus.Paused) revert ISubscriberRegistry.NotPaused();
+
+        sub.status = SubscriptionStatus.Active;
+        sub.pausedUntil = 0;
+
+        emit ISubscriberRegistry.SubscriptionResumed(subscriptionId);
     }
 
     function cancel(uint256 subscriptionId) external pure {
@@ -204,6 +228,13 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
     /// @notice Ensures the caller is the authorized payment processor
     modifier _onlyProcessor() {
         if (msg.sender != processor) revert RecurPayErrors.NotProcessor();
+        _;
+    }
+
+    /// @notice Ensures the caller is the subscriber of the specified subscription
+    modifier _onlySubscriber(uint256 subscriptionId) {
+        if (_subscriptions[subscriptionId].id == 0) revert ISubscriberRegistry.SubscriptionNotFound();
+        if (_subscriptions[subscriptionId].subscriber != msg.sender) revert ISubscriberRegistry.NotSubscriber();
         _;
     }
 }
