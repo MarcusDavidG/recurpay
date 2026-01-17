@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {RecurPayErrors} from "./RecurPayErrors.sol";
+import {RecurPayErrors} from "src/libraries/RecurPayErrors.sol";
 
 /// @title PercentageMath
 /// @author RecurPay Protocol

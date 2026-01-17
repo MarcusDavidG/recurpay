@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {RecurPayBase} from "../base/RecurPayBase.sol";
-import {ISubscriptionFactory} from "../interfaces/ISubscriptionFactory.sol";
-import {RecurPayEvents} from "../libraries/RecurPayEvents.sol";
-import {RecurPayErrors} from "../libraries/RecurPayErrors.sol";
-import {BillingPeriod} from "../libraries/BillingPeriod.sol";
+import {RecurPayBase} from "src/base/RecurPayBase.sol";
+import {ISubscriptionFactory} from "src/interfaces/ISubscriptionFactory.sol";
+import {RecurPayEvents} from "src/libraries/RecurPayEvents.sol";
+import {RecurPayErrors} from "src/libraries/RecurPayErrors.sol";
+import {BillingPeriod} from "src/libraries/BillingPeriod.sol";
 
 /// @title SubscriptionFactory
 /// @author RecurPay Protocol
