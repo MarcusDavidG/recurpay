@@ -19,12 +19,19 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
     mapping(uint256 => PlanConfig) private _plans;
     mapping(uint256 => PlanMetadata) private _planMetadata;
     mapping(address => uint256[]) private _creatorPlans;
+    mapping(address => bool) public supportedTokens;
+
+    /// @notice Emitted when a token's support status is changed
+    event SupportedTokenSet(address indexed token, bool isSupported);
 
     // =========================================================================
     // Constructor
     // =========================================================================
 
-    constructor(address initialOwner) RecurPayBase(initialOwner) {}
+    constructor(address initialOwner) RecurPayBase(initialOwner) {
+        // ETH is always supported
+        supportedTokens[address(0)] = true;
+    }
 
     // =========================================================================
     // External Functions - Plan Creation
@@ -40,6 +47,9 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
         if (config.price == 0) revert ISubscriptionFactory.InvalidPrice();
         if (!BillingPeriod.isValidBillingPeriod(config.billingPeriod)) {
             revert ISubscriptionFactory.InvalidBillingPeriod();
+        }
+        if (!supportedTokens[config.paymentToken]) {
+            revert ISubscriptionFactory.UnsupportedPaymentToken();
         }
 
         planId = ++_planCounter;
@@ -106,6 +116,19 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
     }
 
     // =========================================================================
+    // External Functions - Token Management
+    // =========================================================================
+
+    /// @notice Sets a token as supported or unsupported for payments
+    /// @param token The address of the ERC20 token
+    /// @param isSupported The new support status
+    function setSupportedToken(address token, bool isSupported) external onlyOwner {
+        if (token == address(0)) revert("ETH support cannot be changed");
+        supportedTokens[token] = isSupported;
+        emit SupportedTokenSet(token, isSupported);
+    }
+
+    // =========================================================================
     // External Functions - View
     // =========================================================================
 
@@ -114,7 +137,7 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
         if (_plans[planId].creator == address(0)) revert ISubscriptionFactory.PlanNotFound();
         return _plans[planId];
     }
-
+    
     /// @inheritdoc ISubscriptionFactory
     function getPlanMetadata(uint256 planId) external view returns (PlanMetadata memory metadata) {
         return _planMetadata[planId];
