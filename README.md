@@ -1,4 +1,4 @@
-# RecurPay Protocol
+# RecurPay
 
 <div align="center">
 
