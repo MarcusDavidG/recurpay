@@ -16,12 +16,19 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
     // =========================================================================
 
     ISubscriptionFactory public subscriptionFactory;
+    address public processor;
     uint256 private _subscriptionCounter;
 
     mapping(uint256 => Subscription) private _subscriptions;
     mapping(address => uint256[]) private _subscriberSubscriptions;
     mapping(uint256 => address[]) private _planSubscribers;
     mapping(address => mapping(uint256 => uint256)) private _subscriptionIds;
+    
+    // =========================================================================
+    // Events
+    // =========================================================================
+
+    event ProcessorSet(address indexed newProcessor);
 
     // =========================================================================
     // Constructor
@@ -93,13 +100,57 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         revert("Not Implemented");
     }
     
-    function updateStatus(uint256 subscriptionId, SubscriptionStatus newStatus) external pure {
-        revert("Not Implemented");
+    /// @inheritdoc ISubscriberRegistry
+    function updateStatus(uint256 subscriptionId, SubscriptionStatus newStatus)
+        external
+        nonReentrant
+        whenNotPaused
+        _onlyProcessor
+    {
+        Subscription storage sub = _subscriptions[subscriptionId];
+        if (sub.id == 0) revert ISubscriberRegistry.SubscriptionNotFound();
+
+        SubscriptionStatus oldStatus = sub.status;
+        if (oldStatus == newStatus) return;
+
+        sub.status = newStatus;
+        emit ISubscriberRegistry.SubscriptionStatusChanged(subscriptionId, oldStatus, newStatus);
     }
 
-    function recordPayment(uint256 subscriptionId, uint256 amount) external pure {
-        revert("Not Implemented");
+    /// @inheritdoc ISubscriberRegistry
+    function recordPayment(uint256 subscriptionId, uint256 amount)
+        external
+        nonReentrant
+        whenNotPaused
+        _onlyProcessor
+    {
+        Subscription storage sub = _subscriptions[subscriptionId];
+        if (sub.id == 0) revert ISubscriberRegistry.SubscriptionNotFound();
+
+        ISubscriptionFactory.PlanConfig memory plan = subscriptionFactory.getPlan(sub.planId);
+
+        sub.lastPaymentDate = uint64(block.timestamp);
+        sub.totalPaid += amount;
+        sub.currentPeriodStart = sub.currentPeriodEnd;
+        sub.currentPeriodEnd += plan.billingPeriod;
+
+        emit ISubscriberRegistry.SubscriptionRenewed(subscriptionId, sub.currentPeriodEnd);
     }
+
+    // =========================================================================
+    // External Functions - Configuration
+    // =========================================================================
+
+    /// @notice Sets the authorized payment processor address
+    function setProcessor(address newProcessor) external onlyOwner {
+        if (newProcessor == address(0)) revert RecurPayErrors.ZeroAddress();
+        processor = newProcessor;
+        emit ProcessorSet(newProcessor);
+    }
+
+    // =========================================================================
+    // External Functions - View (To be implemented)
+    // =========================================================================
 
     function getSubscription(
         uint256 subscriptionId
@@ -145,4 +196,15 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
     function totalSubscriptions() external view returns (uint256 count) {
         revert("Not Implemented");
     }
+    
+    // =========================================================================
+    // Modifiers
+    // =========================================================================
+
+    /// @notice Ensures the caller is the authorized payment processor
+    modifier _onlyProcessor() {
+        if (msg.sender != processor) revert RecurPayErrors.NotProcessor();
+        _;
+    }
 }
+
