@@ -163,3 +163,4 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
         if (_plans[planId].creator != msg.sender) revert ISubscriptionFactory.NotPlanCreator();
         _;
     }
+}
