@@ -12,7 +12,5 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 abstract contract RecurPayBase is Ownable, Pausable, ReentrancyGuard {
     /// @notice Initializes the contract, setting the sender as the initial owner.
     /// @param initialOwner The address of the initial owner.
-    constructor(address initialOwner) {
-        _transferOwnership(initialOwner);
-    }
+    constructor(address initialOwner) Ownable(initialOwner) {}
 }
