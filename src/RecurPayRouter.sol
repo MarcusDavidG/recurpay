@@ -81,4 +81,27 @@ contract RecurPayRouter is RecurPayBase {
             address(creatorVault)
         );
     }
+
+    // ========================================================================
+    // External Functions - Subscriber Actions
+    // ========================================================================
+
+    /// @notice Subscribe to a plan with initial payment
+    /// @param planId Plan to subscribe to
+    /// @return subscriptionId New subscription ID
+    function subscribe(uint256 planId) external nonReentrant whenNotPaused returns (uint256 subscriptionId) {
+        ISubscriptionFactory.PlanConfig memory plan = subscriptionFactory.getPlan(planId);
+
+        if (plan.paymentToken != address(0)) {
+            IERC20 token = IERC20(plan.paymentToken);
+            if (token.allowance(msg.sender, address(paymentProcessor)) < plan.price) {
+                revert RecurPayErrors.InsufficientAllowance();
+            }
+        }
+
+        subscriptionId = subscriberRegistry.subscribe(planId, msg.sender);
+        paymentProcessor.processPayment(subscriptionId);
+
+        return subscriptionId;
+    }
 }
