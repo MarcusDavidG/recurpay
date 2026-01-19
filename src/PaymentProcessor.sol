@@ -268,4 +268,43 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
 
         return (success, amount);
     }
+
+    // ========================================================================
+    // Internal Functions - Grace Period
+    // ========================================================================
+
+    /// @notice Handles payment failure with grace period logic
+    function _handlePaymentFailure(
+        uint256 subscriptionId,
+        ISubscriberRegistry.Subscription memory sub,
+        ISubscriptionFactory.PlanConfig memory plan,
+        bytes4 reason
+    ) internal {
+        // Record failed payment
+        _paymentHistory[subscriptionId].push(PaymentExecution({
+            subscriptionId: subscriptionId,
+            amount: plan.price,
+            token: plan.paymentToken,
+            timestamp: uint64(block.timestamp),
+            success: false
+        }));
+
+        emit PaymentFailed(subscriptionId, sub.subscriber, reason);
+
+        // Check if already in grace period
+        if (sub.status == ISubscriberRegistry.SubscriptionStatus.GracePeriod) {
+            // Check if grace period expired
+            uint64 graceDeadline = sub.currentPeriodEnd + plan.gracePeriod;
+            if (block.timestamp > graceDeadline) {
+                // Cancel subscription
+                subscriberRegistry.updateStatus(subscriptionId, ISubscriberRegistry.SubscriptionStatus.Cancelled);
+                emit SubscriptionCancelledForNonPayment(subscriptionId);
+            }
+        } else if (sub.status == ISubscriberRegistry.SubscriptionStatus.Active) {
+            // Enter grace period
+            subscriberRegistry.updateStatus(subscriptionId, ISubscriberRegistry.SubscriptionStatus.GracePeriod);
+            uint64 graceDeadline = sub.currentPeriodEnd + plan.gracePeriod;
+            emit GracePeriodStarted(subscriptionId, graceDeadline);
+        }
+    }
 }
