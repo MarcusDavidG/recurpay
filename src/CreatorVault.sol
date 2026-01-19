@@ -1,0 +1,312 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {RecurPayBase} from "src/base/RecurPayBase.sol";
+import {ICreatorVault} from "src/interfaces/ICreatorVault.sol";
+import {RecurPayErrors} from "src/libraries/RecurPayErrors.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+/// @title CreatorVault
+/// @author RecurPay Protocol
+/// @notice Manages creator revenue and withdrawals
+contract CreatorVault is ICreatorVault, RecurPayBase {
+    using SafeERC20 for IERC20;
+
+    // ========================================================================
+    // State Variables
+    // ========================================================================
+
+    /// @notice Address authorized to deposit (PaymentProcessor)
+    address public paymentProcessor;
+
+    /// @notice Vault counter for unique IDs
+    uint256 private _vaultCounter;
+
+    /// @notice Creator address => vault exists
+    mapping(address => bool) private _hasVault;
+
+    /// @notice Creator address => vault ID
+    mapping(address => uint256) private _vaultIds;
+
+    /// @notice Creator => token => balance
+    mapping(address => mapping(address => uint256)) private _balances;
+
+    /// @notice Creator => withdrawal recipient
+    mapping(address => address) private _withdrawalAddresses;
+
+    /// @notice Creator => list of tokens with balance
+    mapping(address => address[]) private _creatorTokens;
+
+    /// @notice Creator => token => exists in list
+    mapping(address => mapping(address => bool)) private _tokenExists;
+
+    /// @notice Creator => revenue stats
+    mapping(address => RevenueStats) private _revenueStats;
+
+    /// @notice Creator => auto-withdrawal enabled
+    mapping(address => bool) private _autoWithdrawEnabled;
+
+    /// @notice Creator => auto-withdrawal threshold
+    mapping(address => uint256) private _autoWithdrawThreshold;
+
+    // ========================================================================
+    // Events
+    // ========================================================================
+
+    event PaymentProcessorSet(address indexed processor);
+    event VaultCreated(address indexed creator, uint256 indexed vaultId);
+
+    // ========================================================================
+    // Constructor
+    // ========================================================================
+
+    constructor(address initialOwner) RecurPayBase(initialOwner) {}
+
+    // ========================================================================
+    // Admin Functions
+    // ========================================================================
+
+    /// @notice Sets the authorized payment processor
+    /// @param processor Address of the PaymentProcessor contract
+    function setPaymentProcessor(address processor) external onlyOwner {
+        if (processor == address(0)) revert RecurPayErrors.ZeroAddress();
+        paymentProcessor = processor;
+        emit PaymentProcessorSet(processor);
+    }
+
+    // ========================================================================
+    // External Functions - Vault Management
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function createVault(address creator) external returns (uint256 vaultId) {
+        if (creator == address(0)) revert RecurPayErrors.ZeroAddress();
+        if (_hasVault[creator]) revert RecurPayErrors.VaultAlreadyExists();
+
+        vaultId = ++_vaultCounter;
+        _hasVault[creator] = true;
+        _vaultIds[creator] = vaultId;
+        _withdrawalAddresses[creator] = creator;
+
+        emit VaultCreated(creator, vaultId);
+        return vaultId;
+    }
+
+    /// @inheritdoc ICreatorVault
+    function hasVault(address creator) external view returns (bool exists) {
+        return _hasVault[creator];
+    }
+
+    // ========================================================================
+    // Modifiers
+    // ========================================================================
+
+    /// @notice Ensures caller is the payment processor
+    modifier onlyProcessor() {
+        if (msg.sender != paymentProcessor) revert RecurPayErrors.NotProcessor();
+        _;
+    }
+
+    /// @notice Ensures caller owns the vault
+    modifier onlyVaultOwner(address creator) {
+        if (msg.sender != creator) revert ICreatorVault.NotVaultOwner();
+        if (!_hasVault[creator]) revert ICreatorVault.VaultNotFound();
+        _;
+    }
+
+    // ========================================================================
+    // External Functions - Deposits
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function deposit(
+        address creator,
+        address token,
+        uint256 amount,
+        uint256 subscriptionId
+    ) external payable onlyProcessor nonReentrant {
+        if (creator == address(0)) revert RecurPayErrors.ZeroAddress();
+        if (amount == 0) revert ICreatorVault.ZeroDeposit();
+
+        // Auto-create vault if doesn't exist
+        if (!_hasVault[creator]) {
+            uint256 vaultId = ++_vaultCounter;
+            _hasVault[creator] = true;
+            _vaultIds[creator] = vaultId;
+            _withdrawalAddresses[creator] = creator;
+            emit VaultCreated(creator, vaultId);
+        }
+
+        // Handle ETH deposits
+        if (token == address(0)) {
+            if (msg.value != amount) revert RecurPayErrors.InsufficientBalance();
+        }
+
+        // Track token if new
+        if (!_tokenExists[creator][token]) {
+            _creatorTokens[creator].push(token);
+            _tokenExists[creator][token] = true;
+        }
+
+        // Update balances
+        _balances[creator][token] += amount;
+
+        // Update revenue stats
+        RevenueStats storage stats = _revenueStats[creator];
+        stats.totalRevenue += amount;
+        stats.pendingBalance += amount;
+
+        emit RevenueDeposited(creator, token, amount, subscriptionId);
+
+        // Check auto-withdrawal
+        if (_autoWithdrawEnabled[creator] && _balances[creator][token] >= _autoWithdrawThreshold[creator]) {
+            _executeWithdrawal(creator, token, _balances[creator][token]);
+        }
+    }
+
+    /// @notice Internal withdrawal execution
+    function _executeWithdrawal(address creator, address token, uint256 amount) internal {
+        address recipient = _withdrawalAddresses[creator];
+
+        _balances[creator][token] -= amount;
+        _revenueStats[creator].pendingBalance -= amount;
+        _revenueStats[creator].totalWithdrawn += amount;
+
+        if (token == address(0)) {
+            (bool success, ) = recipient.call{value: amount}("");
+            if (!success) revert ICreatorVault.TransferFailed();
+        } else {
+            IERC20(token).safeTransfer(recipient, amount);
+        }
+
+        emit FundsWithdrawn(creator, token, amount, recipient);
+    }
+
+    // ========================================================================
+    // External Functions - Withdrawals
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function withdraw(address token, uint256 amount) external nonReentrant onlyVaultOwner(msg.sender) {
+        if (amount == 0) revert RecurPayErrors.ZeroAmount();
+        if (_balances[msg.sender][token] < amount) revert ICreatorVault.InsufficientVaultBalance();
+
+        _executeWithdrawal(msg.sender, token, amount);
+    }
+
+    /// @inheritdoc ICreatorVault
+    function withdrawAll(address token) external nonReentrant onlyVaultOwner(msg.sender) {
+        uint256 balance = _balances[msg.sender][token];
+        if (balance == 0) revert ICreatorVault.InsufficientVaultBalance();
+
+        _executeWithdrawal(msg.sender, token, balance);
+    }
+
+    /// @inheritdoc ICreatorVault
+    function setWithdrawalAddress(address recipient) external onlyVaultOwner(msg.sender) {
+        if (recipient == address(0)) revert ICreatorVault.InvalidWithdrawalAddress();
+
+        address oldRecipient = _withdrawalAddresses[msg.sender];
+        _withdrawalAddresses[msg.sender] = recipient;
+
+        emit WithdrawalAddressUpdated(msg.sender, oldRecipient, recipient);
+    }
+
+    // ========================================================================
+    // External Functions - Balance Queries
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function getBalance(address creator, address token) external view returns (uint256 balance) {
+        return _balances[creator][token];
+    }
+
+    /// @inheritdoc ICreatorVault
+    function getAllBalances(address creator) external view returns (TokenBalance[] memory balances) {
+        address[] memory tokens = _creatorTokens[creator];
+        uint256 count = 0;
+
+        // Count non-zero balances
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (_balances[creator][tokens[i]] > 0) {
+                count++;
+            }
+        }
+
+        balances = new TokenBalance[](count);
+        uint256 index = 0;
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 bal = _balances[creator][tokens[i]];
+            if (bal > 0) {
+                balances[index] = TokenBalance({
+                    token: tokens[i],
+                    balance: bal,
+                    lastUpdated: uint64(block.timestamp)
+                });
+                index++;
+            }
+        }
+
+        return balances;
+    }
+
+    /// @inheritdoc ICreatorVault
+    function getWithdrawalAddress(address creator) external view returns (address recipient) {
+        return _withdrawalAddresses[creator];
+    }
+
+    // ========================================================================
+    // External Functions - Auto-Withdrawal
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function configureAutoWithdrawal(bool enabled, uint256 threshold) external onlyVaultOwner(msg.sender) {
+        _autoWithdrawEnabled[msg.sender] = enabled;
+        _autoWithdrawThreshold[msg.sender] = threshold;
+
+        emit AutoWithdrawalConfigured(msg.sender, enabled, threshold);
+    }
+
+    /// @notice Gets auto-withdrawal configuration for a creator
+    /// @param creator Creator address
+    /// @return enabled Whether auto-withdrawal is enabled
+    /// @return threshold Minimum balance to trigger
+    function getAutoWithdrawalConfig(address creator) external view returns (bool enabled, uint256 threshold) {
+        return (_autoWithdrawEnabled[creator], _autoWithdrawThreshold[creator]);
+    }
+
+    // ========================================================================
+    // External Functions - Revenue Statistics
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function getRevenueStats(address creator) external view returns (RevenueStats memory stats) {
+        return _revenueStats[creator];
+    }
+
+    /// @notice Updates subscriber count for a creator (called by registry)
+    /// @param creator Creator address
+    /// @param count New subscriber count
+    function updateSubscriberCount(address creator, uint32 count) external onlyProcessor {
+        _revenueStats[creator].subscriberCount = count;
+    }
+
+    /// @notice Gets the vault ID for a creator
+    /// @param creator Creator address
+    /// @return vaultId The vault identifier
+    function getVaultId(address creator) external view returns (uint256 vaultId) {
+        if (!_hasVault[creator]) revert ICreatorVault.VaultNotFound();
+        return _vaultIds[creator];
+    }
+
+    /// @notice Returns total number of vaults created
+    /// @return count Total vault count
+    function totalVaults() external view returns (uint256 count) {
+        return _vaultCounter;
+    }
+
+    /// @notice Allows contract to receive ETH
+    receive() external payable {}
+}
