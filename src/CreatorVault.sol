@@ -114,4 +114,72 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         if (!_hasVault[creator]) revert ICreatorVault.VaultNotFound();
         _;
     }
+
+    // ========================================================================
+    // External Functions - Deposits
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function deposit(
+        address creator,
+        address token,
+        uint256 amount,
+        uint256 subscriptionId
+    ) external payable onlyProcessor nonReentrant {
+        if (creator == address(0)) revert RecurPayErrors.ZeroAddress();
+        if (amount == 0) revert ICreatorVault.ZeroDeposit();
+
+        // Auto-create vault if doesn't exist
+        if (!_hasVault[creator]) {
+            uint256 vaultId = ++_vaultCounter;
+            _hasVault[creator] = true;
+            _vaultIds[creator] = vaultId;
+            _withdrawalAddresses[creator] = creator;
+            emit VaultCreated(creator, vaultId);
+        }
+
+        // Handle ETH deposits
+        if (token == address(0)) {
+            if (msg.value != amount) revert RecurPayErrors.InsufficientBalance();
+        }
+
+        // Track token if new
+        if (!_tokenExists[creator][token]) {
+            _creatorTokens[creator].push(token);
+            _tokenExists[creator][token] = true;
+        }
+
+        // Update balances
+        _balances[creator][token] += amount;
+
+        // Update revenue stats
+        RevenueStats storage stats = _revenueStats[creator];
+        stats.totalRevenue += amount;
+        stats.pendingBalance += amount;
+
+        emit RevenueDeposited(creator, token, amount, subscriptionId);
+
+        // Check auto-withdrawal
+        if (_autoWithdrawEnabled[creator] && _balances[creator][token] >= _autoWithdrawThreshold[creator]) {
+            _executeWithdrawal(creator, token, _balances[creator][token]);
+        }
+    }
+
+    /// @notice Internal withdrawal execution
+    function _executeWithdrawal(address creator, address token, uint256 amount) internal {
+        address recipient = _withdrawalAddresses[creator];
+
+        _balances[creator][token] -= amount;
+        _revenueStats[creator].pendingBalance -= amount;
+        _revenueStats[creator].totalWithdrawn += amount;
+
+        if (token == address(0)) {
+            (bool success, ) = recipient.call{value: amount}("");
+            if (!success) revert ICreatorVault.TransferFailed();
+        } else {
+            IERC20(token).safeTransfer(recipient, amount);
+        }
+
+        emit FundsWithdrawn(creator, token, amount, recipient);
+    }
 }
