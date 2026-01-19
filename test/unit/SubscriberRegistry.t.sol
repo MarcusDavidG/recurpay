@@ -203,4 +203,80 @@ contract SubscriberRegistryTest is Test {
         vm.expectRevert(ISubscriberRegistry.NotSubscriber.selector);
         registry.resume(subId);
     }
+
+    // =========================================================================
+    // Cancellation Tests
+    // =========================================================================
+
+    function test_Cancel_Success() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.prank(subscriber);
+        registry.cancel(subId);
+
+        ISubscriberRegistry.Subscription memory sub = registry.getSubscription(subId);
+        assertEq(uint8(sub.status), uint8(ISubscriberRegistry.SubscriptionStatus.Cancelled));
+    }
+
+    function test_Cancel_FromPaused() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.startPrank(subscriber);
+        registry.pause(subId, 7 days);
+        registry.cancel(subId);
+        vm.stopPrank();
+
+        ISubscriberRegistry.Subscription memory sub = registry.getSubscription(subId);
+        assertEq(uint8(sub.status), uint8(ISubscriberRegistry.SubscriptionStatus.Cancelled));
+    }
+
+    function test_Cancel_RevertAlreadyCancelled() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.startPrank(subscriber);
+        registry.cancel(subId);
+
+        vm.expectRevert(ISubscriberRegistry.AlreadyCancelled.selector);
+        registry.cancel(subId);
+        vm.stopPrank();
+    }
+
+    function test_Cancel_RevertNotSubscriber() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.prank(address(0x999));
+        vm.expectRevert(ISubscriberRegistry.NotSubscriber.selector);
+        registry.cancel(subId);
+    }
+
+    // =========================================================================
+    // Profile Tests
+    // =========================================================================
+
+    function test_SubscriberProfile_Updated() public {
+        registry.subscribe(planId, subscriber);
+
+        ISubscriberRegistry.SubscriberProfile memory profile = registry.getSubscriberProfile(subscriber);
+        assertEq(profile.subscriptionCount, 1);
+        assertEq(profile.activeSubscriptions, 1);
+    }
+
+    function test_SubscriberProfile_AfterCancel() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.prank(subscriber);
+        registry.cancel(subId);
+
+        ISubscriberRegistry.SubscriberProfile memory profile = registry.getSubscriberProfile(subscriber);
+        assertEq(profile.subscriptionCount, 1);
+        assertEq(profile.activeSubscriptions, 0);
+    }
+
+    function test_HasActiveSubscription() public {
+        assertFalse(registry.hasActiveSubscription(subscriber, planId));
+
+        registry.subscribe(planId, subscriber);
+
+        assertTrue(registry.hasActiveSubscription(subscriber, planId));
+    }
 }
