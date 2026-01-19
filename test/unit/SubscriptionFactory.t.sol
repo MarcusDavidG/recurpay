@@ -199,4 +199,71 @@ contract SubscriptionFactoryTest is Test {
         vm.expectRevert(ISubscriptionFactory.NotPlanCreator.selector);
         factory.setPlanActive(planId, false);
     }
+
+    // =========================================================================
+    // Token Whitelist Tests
+    // =========================================================================
+
+    function test_SetSupportedToken_Add() public {
+        address newToken = address(0x123);
+        
+        assertFalse(factory.supportedTokens(newToken));
+        
+        factory.setSupportedToken(newToken, true);
+        
+        assertTrue(factory.supportedTokens(newToken));
+    }
+
+    function test_SetSupportedToken_Remove() public {
+        factory.setSupportedToken(address(token), false);
+        
+        assertFalse(factory.supportedTokens(address(token)));
+    }
+
+    function test_SetSupportedToken_RevertNotOwner() public {
+        vm.prank(user);
+        vm.expectRevert();
+        factory.setSupportedToken(address(0x123), true);
+    }
+
+    function test_SetSupportedToken_RevertETH() public {
+        vm.expectRevert();
+        factory.setSupportedToken(address(0), false);
+    }
+
+    function test_ETH_AlwaysSupported() public view {
+        assertTrue(factory.supportedTokens(address(0)));
+    }
+
+    // =========================================================================
+    // Query Tests
+    // =========================================================================
+
+    function test_GetCreatorPlans() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+
+        factory.createPlan(config, metadata);
+        factory.createPlan(config, metadata);
+
+        uint256[] memory plans = factory.getCreatorPlans(creator);
+        assertEq(plans.length, 2);
+        assertEq(plans[0], 1);
+        assertEq(plans[1], 2);
+    }
+
+    function test_GetPlanMetadata() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+        uint256 planId = factory.createPlan(config, metadata);
+
+        ISubscriptionFactory.PlanMetadata memory storedMetadata = factory.getPlanMetadata(planId);
+        assertEq(storedMetadata.name, "Test Plan");
+        assertEq(storedMetadata.description, "A test subscription plan");
+    }
+
+    function test_GetPlan_RevertNotFound() public {
+        vm.expectRevert(ISubscriptionFactory.PlanNotFound.selector);
+        factory.getPlan(999);
+    }
 }
