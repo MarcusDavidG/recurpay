@@ -274,6 +274,7 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     // ========================================================================
 
     /// @notice Handles payment failure with grace period logic
+        /// @notice Handles payment failure with grace period logic
     function _handlePaymentFailure(
         uint256 subscriptionId,
         ISubscriberRegistry.Subscription memory sub,
@@ -308,12 +309,27 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         }
     }
 
+    // ========================================================================
+    // External Functions - Payment Queries
+    // ========================================================================
+
     /// @inheritdoc IPaymentProcessor
     function isPaymentDue(
         uint256 subscriptionId
-    ) external view returns (bool) {
+    ) external view returns (bool isDue, uint256 dueAmount) {
         ISubscriberRegistry.Subscription memory sub = subscriberRegistry.getSubscription(subscriptionId);
-        return block.timestamp >= sub.currentPeriodEnd;
+
+        if (sub.status != ISubscriberRegistry.SubscriptionStatus.Active &&
+            sub.status != ISubscriberRegistry.SubscriptionStatus.GracePeriod) {
+            return (false, 0);
+        }
+
+        ISubscriptionFactory.PlanConfig memory plan = subscriptionFactory.getPlan(sub.planId);
+
+        isDue = block.timestamp >= sub.currentPeriodEnd;
+        dueAmount = isDue ? plan.price : 0;
+
+        return (isDue, dueAmount);
     }
 
     /// @inheritdoc IPaymentProcessor
