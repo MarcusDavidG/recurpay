@@ -341,23 +341,23 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     /// @inheritdoc IPaymentProcessor
     function getPaymentHistory(
         uint256 subscriptionId,
-        uint256 cursor,
-        uint256 size
-    ) external view returns (PaymentExecution[] memory executions, uint256 nextCursor) {
-        uint256 historyLength = _paymentHistory[subscriptionId].length;
-        uint256 start = cursor;
-        if (start >= historyLength) {
-            return (new PaymentExecution[](0), historyLength);
+        uint256 limit
+    ) external view returns (PaymentExecution[] memory payments) {
+        PaymentExecution[] storage history = _paymentHistory[subscriptionId];
+        uint256 historyLength = history.length;
+
+        if (historyLength == 0) {
+            return new PaymentExecution[](0);
         }
-        uint256 end = start + size;
-        if (end > historyLength) {
-            end = historyLength;
+
+        uint256 returnLength = limit > historyLength ? historyLength : limit;
+        payments = new PaymentExecution[](returnLength);
+
+        // Return most recent first
+        for (uint256 i = 0; i < returnLength; i++) {
+            payments[i] = history[historyLength - 1 - i];
         }
-        executions = new PaymentExecution[](end - start);
-        for (uint256 i = start; i < end; i++) {
-            executions[i - start] = _paymentHistory[subscriptionId][i];
-        }
-        nextCursor = end;
-        return (executions, nextCursor);
+
+        return payments;
     }
 }
