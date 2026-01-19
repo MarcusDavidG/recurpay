@@ -256,4 +256,24 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
     function getWithdrawalAddress(address creator) external view returns (address recipient) {
         return _withdrawalAddresses[creator];
     }
+
+    // ========================================================================
+    // External Functions - Auto-Withdrawal
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function configureAutoWithdrawal(bool enabled, uint256 threshold) external onlyVaultOwner(msg.sender) {
+        _autoWithdrawEnabled[msg.sender] = enabled;
+        _autoWithdrawThreshold[msg.sender] = threshold;
+
+        emit AutoWithdrawalConfigured(msg.sender, enabled, threshold);
+    }
+
+    /// @notice Gets auto-withdrawal configuration for a creator
+    /// @param creator Creator address
+    /// @return enabled Whether auto-withdrawal is enabled
+    /// @return threshold Minimum balance to trigger
+    function getAutoWithdrawalConfig(address creator) external view returns (bool enabled, uint256 threshold) {
+        return (_autoWithdrawEnabled[creator], _autoWithdrawThreshold[creator]);
+    }
 }
