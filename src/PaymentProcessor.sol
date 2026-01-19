@@ -139,4 +139,88 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     function getAccumulatedFees(address token) external view returns (uint256 amount) {
         return _protocolFees[token];
     }
+
+    // ========================================================================
+    // External Functions - Payment Processing
+    // ========================================================================
+
+    /// @inheritdoc IPaymentProcessor
+    function processPayment(uint256 subscriptionId) external nonReentrant whenNotPaused returns (bool success) {
+        return _processPayment(subscriptionId);
+    }
+
+    /// @notice Internal payment processing logic
+    function _processPayment(uint256 subscriptionId) internal returns (bool success) {
+        // Get subscription data
+        ISubscriberRegistry.Subscription memory sub = subscriberRegistry.getSubscription(subscriptionId);
+
+        // Check subscription status
+        if (sub.status == ISubscriberRegistry.SubscriptionStatus.Cancelled) {
+            revert IPaymentProcessor.SubscriptionCancelled();
+        }
+        if (sub.status == ISubscriberRegistry.SubscriptionStatus.Paused) {
+            revert IPaymentProcessor.SubscriptionPaused();
+        }
+
+        // Get plan data
+        ISubscriptionFactory.PlanConfig memory plan = subscriptionFactory.getPlan(sub.planId);
+
+        // Check if payment is due
+        if (block.timestamp < sub.currentPeriodEnd) {
+            revert IPaymentProcessor.PaymentNotDue();
+        }
+
+        address subscriber = sub.subscriber;
+        address token = plan.paymentToken;
+        uint256 amount = plan.price;
+
+        // Calculate fees
+        uint256 protocolFee = PercentageMath.calculatePercentage(amount, _protocolFeeBps);
+        uint256 creatorAmount = amount - protocolFee;
+
+        // Process ERC20 payment
+        if (token != address(0)) {
+            IERC20 paymentToken = IERC20(token);
+
+            // Check balance and allowance
+            if (paymentToken.balanceOf(subscriber) < amount) {
+                _handlePaymentFailure(subscriptionId, sub, plan, IPaymentProcessor.InsufficientBalance.selector);
+                return false;
+            }
+            if (paymentToken.allowance(subscriber, address(this)) < amount) {
+                _handlePaymentFailure(subscriptionId, sub, plan, IPaymentProcessor.InsufficientAllowance.selector);
+                return false;
+            }
+
+            // Transfer to this contract first
+            paymentToken.safeTransferFrom(subscriber, address(this), amount);
+
+            // Send to creator vault
+            paymentToken.safeTransfer(address(creatorVault), creatorAmount);
+        }
+
+        // Deposit to creator vault
+        creatorVault.deposit(plan.creator, token, creatorAmount, subscriptionId);
+
+        // Accumulate protocol fee
+        if (protocolFee > 0) {
+            _protocolFees[token] += protocolFee;
+        }
+
+        // Record payment in registry
+        subscriberRegistry.recordPayment(subscriptionId, amount);
+
+        // Record in history
+        _paymentHistory[subscriptionId].push(PaymentExecution({
+            subscriptionId: subscriptionId,
+            amount: amount,
+            token: token,
+            timestamp: uint64(block.timestamp),
+            success: true
+        }));
+
+        emit PaymentProcessed(subscriptionId, subscriber, plan.creator, amount, token);
+
+        return true;
+    }
 }
