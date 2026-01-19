@@ -200,4 +200,51 @@ contract RecurPayRouter is RecurPayBase {
     function getCreatorBalance(address creator, address token) external view returns (uint256) {
         return creatorVault.getBalance(creator, token);
     }
+
+    // ========================================================================
+    // External Functions - Protocol Queries
+    // ========================================================================
+
+    /// @notice Get plan details
+    function getPlan(uint256 planId) external view returns (ISubscriptionFactory.PlanConfig memory) {
+        return subscriptionFactory.getPlan(planId);
+    }
+
+    /// @notice Get plan metadata
+    function getPlanMetadata(uint256 planId) external view returns (ISubscriptionFactory.PlanMetadata memory) {
+        return subscriptionFactory.getPlanMetadata(planId);
+    }
+
+    /// @notice Get plan subscriber count
+    function getPlanSubscriberCount(uint256 planId) external view returns (uint256) {
+        return subscriberRegistry.getPlanSubscriberCount(planId);
+    }
+
+    /// @notice Check if payment is due for a subscription
+    function isPaymentDue(uint256 subscriptionId) external view returns (bool isDue, uint256 amount) {
+        return paymentProcessor.isPaymentDue(subscriptionId);
+    }
+
+    /// @notice Get next payment due date
+    function getNextPaymentDue(uint256 subscriptionId) external view returns (uint64) {
+        return paymentProcessor.getNextPaymentDue(subscriptionId);
+    }
+
+    /// @notice Get protocol fee
+    function getProtocolFee() external view returns (uint16) {
+        return paymentProcessor.protocolFeeBps();
+    }
+
+    /// @notice Get total plans count
+    function totalPlans() external view returns (uint256) {
+        return subscriptionFactory.totalPlans();
+    }
+
+    /// @notice Get total subscriptions count
+    function totalSubscriptions() external view returns (uint256) {
+        return subscriberRegistry.totalSubscriptions();
+    }
+
+    /// @notice Allows contract to receive ETH
+    receive() external payable {}
 }
