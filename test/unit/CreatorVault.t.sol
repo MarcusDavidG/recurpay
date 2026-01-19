@@ -191,4 +191,70 @@ contract CreatorVaultTest is Test {
         vm.expectRevert(ICreatorVault.InvalidWithdrawalAddress.selector);
         vault.setWithdrawalAddress(address(0));
     }
+
+    // =========================================================================
+    // Multi-Token Tests
+    // =========================================================================
+
+    function test_MultiToken_Deposits() public {
+        MockERC20 token2 = new MockERC20("Token 2", "TK2", 18);
+        token2.mint(processor, 1000 ether);
+
+        // Deposit token 1
+        _depositAsProcessor(creator, DEPOSIT_AMOUNT);
+
+        // Deposit token 2
+        vm.startPrank(processor);
+        token2.transfer(address(vault), DEPOSIT_AMOUNT * 2);
+        vault.deposit(creator, address(token2), DEPOSIT_AMOUNT * 2, 2);
+        vm.stopPrank();
+
+        assertEq(vault.getBalance(creator, address(token)), DEPOSIT_AMOUNT);
+        assertEq(vault.getBalance(creator, address(token2)), DEPOSIT_AMOUNT * 2);
+    }
+
+    function test_GetAllBalances() public {
+        MockERC20 token2 = new MockERC20("Token 2", "TK2", 18);
+        token2.mint(processor, 1000 ether);
+
+        _depositAsProcessor(creator, DEPOSIT_AMOUNT);
+
+        vm.startPrank(processor);
+        token2.transfer(address(vault), DEPOSIT_AMOUNT);
+        vault.deposit(creator, address(token2), DEPOSIT_AMOUNT, 2);
+        vm.stopPrank();
+
+        ICreatorVault.TokenBalance[] memory balances = vault.getAllBalances(creator);
+        assertEq(balances.length, 2);
+    }
+
+    // =========================================================================
+    // Auto-Withdrawal Tests
+    // =========================================================================
+
+    function test_ConfigureAutoWithdrawal() public {
+        vault.createVault(creator);
+
+        vm.prank(creator);
+        vault.configureAutoWithdrawal(true, 5 ether);
+
+        (bool enabled, uint256 threshold) = vault.getAutoWithdrawalConfig(creator);
+        assertTrue(enabled);
+        assertEq(threshold, 5 ether);
+    }
+
+    function test_AutoWithdrawal_Triggers() public {
+        vault.createVault(creator);
+
+        vm.prank(creator);
+        vault.configureAutoWithdrawal(true, 5 ether);
+
+        uint256 balanceBefore = token.balanceOf(creator);
+
+        _depositAsProcessor(creator, DEPOSIT_AMOUNT);
+
+        // Balance should be auto-withdrawn
+        assertEq(vault.getBalance(creator, address(token)), 0);
+        assertEq(token.balanceOf(creator), balanceBefore + DEPOSIT_AMOUNT);
+    }
 }
