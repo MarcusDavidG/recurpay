@@ -45,4 +45,85 @@ contract SubscriptionFactoryTest is Test {
             metadataURI: "ipfs://test"
         });
     }
+
+    // =========================================================================
+    // Plan Creation Tests
+    // =========================================================================
+
+    function test_CreatePlan_Success() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+
+        uint256 planId = factory.createPlan(config, metadata);
+
+        assertEq(planId, 1);
+        assertEq(factory.totalPlans(), 1);
+
+        ISubscriptionFactory.PlanConfig memory storedConfig = factory.getPlan(planId);
+        assertEq(storedConfig.creator, creator);
+        assertEq(storedConfig.price, PRICE);
+        assertEq(storedConfig.billingPeriod, BILLING_PERIOD);
+        assertTrue(storedConfig.active);
+    }
+
+    function test_CreatePlan_MultiplePlans() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+
+        uint256 planId1 = factory.createPlan(config, metadata);
+        uint256 planId2 = factory.createPlan(config, metadata);
+        uint256 planId3 = factory.createPlan(config, metadata);
+
+        assertEq(planId1, 1);
+        assertEq(planId2, 2);
+        assertEq(planId3, 3);
+        assertEq(factory.totalPlans(), 3);
+    }
+
+    function test_CreatePlan_WithETH() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        config.paymentToken = address(0); // ETH
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+
+        uint256 planId = factory.createPlan(config, metadata);
+
+        ISubscriptionFactory.PlanConfig memory storedConfig = factory.getPlan(planId);
+        assertEq(storedConfig.paymentToken, address(0));
+    }
+
+    function test_CreatePlan_RevertZeroCreator() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        config.creator = address(0);
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+
+        vm.expectRevert();
+        factory.createPlan(config, metadata);
+    }
+
+    function test_CreatePlan_RevertZeroPrice() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        config.price = 0;
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+
+        vm.expectRevert(ISubscriptionFactory.InvalidPrice.selector);
+        factory.createPlan(config, metadata);
+    }
+
+    function test_CreatePlan_RevertInvalidBillingPeriod() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        config.billingPeriod = 1 minutes; // Too short
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+
+        vm.expectRevert(ISubscriptionFactory.InvalidBillingPeriod.selector);
+        factory.createPlan(config, metadata);
+    }
+
+    function test_CreatePlan_RevertUnsupportedToken() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        config.paymentToken = address(0x999); // Not supported
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+
+        vm.expectRevert(ISubscriptionFactory.UnsupportedPaymentToken.selector);
+        factory.createPlan(config, metadata);
+    }
 }
