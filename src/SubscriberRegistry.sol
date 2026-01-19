@@ -142,7 +142,8 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         Subscription storage sub = _subscriptions[subscriptionId];
         if (sub.status == SubscriptionStatus.Cancelled) revert ISubscriberRegistry.AlreadyCancelled();
 
-        if(sub.status == SubscriptionStatus.Active || sub.status == SubscriptionStatus.Paused) {
+        // Only decrement activeSubscriptions if it was active
+        if(sub.status == SubscriptionStatus.Active) {
             _subscriberProfiles[sub.subscriber].activeSubscriptions--;
         }
         sub.status = SubscriptionStatus.Cancelled;
