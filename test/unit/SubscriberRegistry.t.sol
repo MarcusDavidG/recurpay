@@ -127,4 +127,80 @@ contract SubscriberRegistryTest is Test {
         vm.expectRevert(ISubscriberRegistry.PlanAtCapacity.selector);
         registry.subscribe(limitedPlanId, address(0x4));
     }
+
+    // =========================================================================
+    // Pause and Resume Tests
+    // =========================================================================
+
+    function test_Pause_Success() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.prank(subscriber);
+        registry.pause(subId, 7 days);
+
+        ISubscriberRegistry.Subscription memory sub = registry.getSubscription(subId);
+        assertEq(uint8(sub.status), uint8(ISubscriberRegistry.SubscriptionStatus.Paused));
+    }
+
+    function test_Pause_Indefinite() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.prank(subscriber);
+        registry.pause(subId, 0);
+
+        ISubscriberRegistry.Subscription memory sub = registry.getSubscription(subId);
+        assertEq(uint8(sub.status), uint8(ISubscriberRegistry.SubscriptionStatus.Paused));
+        assertEq(sub.pausedUntil, type(uint64).max);
+    }
+
+    function test_Pause_RevertNotSubscriber() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.prank(address(0x999));
+        vm.expectRevert(ISubscriberRegistry.NotSubscriber.selector);
+        registry.pause(subId, 7 days);
+    }
+
+    function test_Pause_RevertNotActive() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.startPrank(subscriber);
+        registry.pause(subId, 7 days);
+
+        vm.expectRevert(ISubscriberRegistry.SubscriptionNotActive.selector);
+        registry.pause(subId, 7 days);
+        vm.stopPrank();
+    }
+
+    function test_Resume_Success() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.startPrank(subscriber);
+        registry.pause(subId, 7 days);
+        registry.resume(subId);
+        vm.stopPrank();
+
+        ISubscriberRegistry.Subscription memory sub = registry.getSubscription(subId);
+        assertEq(uint8(sub.status), uint8(ISubscriberRegistry.SubscriptionStatus.Active));
+        assertEq(sub.pausedUntil, 0);
+    }
+
+    function test_Resume_RevertNotPaused() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.prank(subscriber);
+        vm.expectRevert(ISubscriberRegistry.NotPaused.selector);
+        registry.resume(subId);
+    }
+
+    function test_Resume_RevertNotSubscriber() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        vm.prank(subscriber);
+        registry.pause(subId, 7 days);
+
+        vm.prank(address(0x999));
+        vm.expectRevert(ISubscriberRegistry.NotSubscriber.selector);
+        registry.resume(subId);
+    }
 }
