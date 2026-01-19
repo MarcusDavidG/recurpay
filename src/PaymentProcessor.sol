@@ -307,4 +307,41 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
             emit GracePeriodStarted(subscriptionId, graceDeadline);
         }
     }
+
+    /// @inheritdoc IPaymentProcessor
+    function isPaymentDue(
+        uint256 subscriptionId
+    ) external view returns (bool) {
+        ISubscriberRegistry.Subscription memory sub = subscriberRegistry.getSubscription(subscriptionId);
+        return block.timestamp >= sub.currentPeriodEnd;
+    }
+
+    /// @inheritdoc IPaymentProcessor
+    function getNextPaymentDue(uint256 subscriptionId) external view returns (uint64 dueDate) {
+        ISubscriberRegistry.Subscription memory sub = subscriberRegistry.getSubscription(subscriptionId);
+        return sub.currentPeriodEnd;
+    }
+
+    /// @inheritdoc IPaymentProcessor
+    function getPaymentHistory(
+        uint256 subscriptionId,
+        uint256 cursor,
+        uint256 size
+    ) external view returns (PaymentExecution[] memory executions, uint256 nextCursor) {
+        uint256 historyLength = _paymentHistory[subscriptionId].length;
+        uint256 start = cursor;
+        if (start >= historyLength) {
+            return (new PaymentExecution[](0), historyLength);
+        }
+        uint256 end = start + size;
+        if (end > historyLength) {
+            end = historyLength;
+        }
+        executions = new PaymentExecution[](end - start);
+        for (uint256 i = start; i < end; i++) {
+            executions[i - start] = _paymentHistory[subscriptionId][i];
+        }
+        nextCursor = end;
+        return (executions, nextCursor);
+    }
 }
