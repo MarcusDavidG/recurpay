@@ -223,4 +223,49 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
 
         return true;
     }
+
+    // ========================================================================
+    // External Functions - Batch Processing
+    // ========================================================================
+
+    /// @inheritdoc IPaymentProcessor
+    function processBatch(
+        uint256[] calldata subscriptionIds
+    ) external nonReentrant whenNotPaused returns (BatchResult memory result) {
+        uint256 length = subscriptionIds.length;
+        if (length > MAX_BATCH_SIZE) revert IPaymentProcessor.BatchSizeExceeded();
+
+        result.processed = uint32(length);
+
+        for (uint256 i = 0; i < length; i++) {
+            try this.processPaymentInternal(subscriptionIds[i]) returns (bool success, uint256 amount) {
+                if (success) {
+                    result.succeeded++;
+                    result.totalAmount += amount;
+                } else {
+                    result.failed++;
+                }
+            } catch {
+                result.failed++;
+            }
+        }
+
+        return result;
+    }
+
+    /// @notice Internal function for batch processing (allows try/catch)
+    /// @param subscriptionId Subscription to process
+    /// @return success Whether payment succeeded
+    /// @return amount Amount collected
+    function processPaymentInternal(uint256 subscriptionId) external returns (bool success, uint256 amount) {
+        require(msg.sender == address(this), "Internal only");
+
+        ISubscriberRegistry.Subscription memory sub = subscriberRegistry.getSubscription(subscriptionId);
+        ISubscriptionFactory.PlanConfig memory plan = subscriptionFactory.getPlan(sub.planId);
+
+        success = _processPayment(subscriptionId);
+        amount = success ? plan.price : 0;
+
+        return (success, amount);
+    }
 }
