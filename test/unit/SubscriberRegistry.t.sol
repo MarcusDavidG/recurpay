@@ -51,4 +51,80 @@ contract SubscriberRegistryTest is Test {
 
         planId = factory.createPlan(config, metadata);
     }
+
+    // =========================================================================
+    // Subscription Creation Tests
+    // =========================================================================
+
+    function test_Subscribe_Success() public {
+        uint256 subId = registry.subscribe(planId, subscriber);
+
+        assertEq(subId, 1);
+        assertEq(registry.totalSubscriptions(), 1);
+
+        ISubscriberRegistry.Subscription memory sub = registry.getSubscription(subId);
+        assertEq(sub.planId, planId);
+        assertEq(sub.subscriber, subscriber);
+        assertEq(uint8(sub.status), uint8(ISubscriberRegistry.SubscriptionStatus.Active));
+    }
+
+    function test_Subscribe_MultipleSubscribers() public {
+        address subscriber2 = address(0x4);
+        address subscriber3 = address(0x5);
+
+        uint256 subId1 = registry.subscribe(planId, subscriber);
+        uint256 subId2 = registry.subscribe(planId, subscriber2);
+        uint256 subId3 = registry.subscribe(planId, subscriber3);
+
+        assertEq(subId1, 1);
+        assertEq(subId2, 2);
+        assertEq(subId3, 3);
+        assertEq(registry.getPlanSubscriberCount(planId), 3);
+    }
+
+    function test_Subscribe_RevertAlreadySubscribed() public {
+        registry.subscribe(planId, subscriber);
+
+        vm.expectRevert(ISubscriberRegistry.AlreadySubscribed.selector);
+        registry.subscribe(planId, subscriber);
+    }
+
+    function test_Subscribe_RevertZeroAddress() public {
+        vm.expectRevert();
+        registry.subscribe(planId, address(0));
+    }
+
+    function test_Subscribe_RevertPlanNotActive() public {
+        vm.prank(creator);
+        factory.setPlanActive(planId, false);
+
+        vm.expectRevert(ISubscriptionFactory.PlanNotActive.selector);
+        registry.subscribe(planId, subscriber);
+    }
+
+    function test_Subscribe_RevertPlanAtCapacity() public {
+        // Create plan with max 1 subscriber
+        ISubscriptionFactory.PlanConfig memory config = ISubscriptionFactory.PlanConfig({
+            creator: creator,
+            paymentToken: address(token),
+            price: PRICE,
+            billingPeriod: BILLING_PERIOD,
+            gracePeriod: GRACE_PERIOD,
+            maxSubscribers: 1,
+            active: true
+        });
+
+        ISubscriptionFactory.PlanMetadata memory metadata = ISubscriptionFactory.PlanMetadata({
+            name: "Limited Plan",
+            description: "",
+            metadataURI: ""
+        });
+
+        uint256 limitedPlanId = factory.createPlan(config, metadata);
+
+        registry.subscribe(limitedPlanId, subscriber);
+
+        vm.expectRevert(ISubscriberRegistry.PlanAtCapacity.selector);
+        registry.subscribe(limitedPlanId, address(0x4));
+    }
 }
