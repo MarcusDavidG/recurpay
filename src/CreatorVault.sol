@@ -276,4 +276,37 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
     function getAutoWithdrawalConfig(address creator) external view returns (bool enabled, uint256 threshold) {
         return (_autoWithdrawEnabled[creator], _autoWithdrawThreshold[creator]);
     }
+
+    // ========================================================================
+    // External Functions - Revenue Statistics
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function getRevenueStats(address creator) external view returns (RevenueStats memory stats) {
+        return _revenueStats[creator];
+    }
+
+    /// @notice Updates subscriber count for a creator (called by registry)
+    /// @param creator Creator address
+    /// @param count New subscriber count
+    function updateSubscriberCount(address creator, uint32 count) external onlyProcessor {
+        _revenueStats[creator].subscriberCount = count;
+    }
+
+    /// @notice Gets the vault ID for a creator
+    /// @param creator Creator address
+    /// @return vaultId The vault identifier
+    function getVaultId(address creator) external view returns (uint256 vaultId) {
+        if (!_hasVault[creator]) revert ICreatorVault.VaultNotFound();
+        return _vaultIds[creator];
+    }
+
+    /// @notice Returns total number of vaults created
+    /// @return count Total vault count
+    function totalVaults() external view returns (uint256 count) {
+        return _vaultCounter;
+    }
+
+    /// @notice Allows contract to receive ETH
+    receive() external payable {}
 }
