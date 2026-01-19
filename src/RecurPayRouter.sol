@@ -104,4 +104,43 @@ contract RecurPayRouter is RecurPayBase {
 
         return subscriptionId;
     }
+
+    // ========================================================================
+    // External Functions - Subscription Management
+    // ========================================================================
+
+    /// @notice Pause a subscription
+    function pauseSubscription(uint256 subscriptionId, uint32 duration) external nonReentrant {
+        subscriberRegistry.pause(subscriptionId, duration);
+    }
+
+    /// @notice Resume a paused subscription
+    function resumeSubscription(uint256 subscriptionId) external nonReentrant {
+        subscriberRegistry.resume(subscriptionId);
+    }
+
+    /// @notice Cancel a subscription
+    function cancelSubscription(uint256 subscriptionId) external nonReentrant {
+        subscriberRegistry.cancel(subscriptionId);
+    }
+
+    /// @notice Get subscription details
+    function getSubscription(uint256 subscriptionId) external view returns (ISubscriberRegistry.Subscription memory) {
+        return subscriberRegistry.getSubscription(subscriptionId);
+    }
+
+    /// @notice Get all subscriptions for caller
+    function getMySubscriptions() external view returns (uint256[] memory) {
+        return subscriberRegistry.getSubscriberSubscriptions(msg.sender);
+    }
+
+    /// @notice Get active subscriptions for caller
+    function getMyActiveSubscriptions() external view returns (uint256[] memory) {
+        return subscriberRegistry.getActiveSubscriptions(msg.sender);
+    }
+
+    /// @notice Check if caller has active subscription to a plan
+    function hasActiveSubscription(uint256 planId) external view returns (bool) {
+        return subscriberRegistry.hasActiveSubscription(msg.sender, planId);
+    }
 }
