@@ -360,4 +360,41 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
 
         return payments;
     }
+
+    /// @notice Gets the total number of payments for a subscription
+    /// @param subscriptionId Subscription to query
+    /// @return count Total payment count
+    function getPaymentCount(uint256 subscriptionId) external view returns (uint256 count) {
+        return _paymentHistory[subscriptionId].length;
+    }
+
+    /// @notice Gets the last payment for a subscription
+    /// @param subscriptionId Subscription to query
+    /// @return payment Last payment execution
+    function getLastPayment(uint256 subscriptionId) external view returns (PaymentExecution memory payment) {
+        PaymentExecution[] storage history = _paymentHistory[subscriptionId];
+        if (history.length == 0) {
+            return PaymentExecution({
+                subscriptionId: 0,
+                amount: 0,
+                token: address(0),
+                timestamp: 0,
+                success: false
+            });
+        }
+        return history[history.length - 1];
+    }
+
+    /// @notice Calculates the fee breakdown for a payment
+    /// @param amount Total payment amount
+    /// @return protocolFee Fee going to protocol
+    /// @return creatorAmount Amount going to creator
+    function calculateFees(uint256 amount) external view returns (uint256 protocolFee, uint256 creatorAmount) {
+        protocolFee = PercentageMath.calculatePercentage(amount, _protocolFeeBps);
+        creatorAmount = amount - protocolFee;
+        return (protocolFee, creatorAmount);
+    }
+
+    /// @notice Allows contract to receive ETH
+    receive() external payable {}
 }
