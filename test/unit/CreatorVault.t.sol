@@ -111,4 +111,84 @@ contract CreatorVaultTest is Test {
 
         assertEq(vault.getBalance(creator, address(0)), 1 ether);
     }
+
+    // =========================================================================
+    // Withdrawal Tests
+    // =========================================================================
+
+    function test_Withdraw_Success() public {
+        _depositAsProcessor(creator, DEPOSIT_AMOUNT);
+
+        uint256 balanceBefore = token.balanceOf(creator);
+
+        vm.prank(creator);
+        vault.withdraw(address(token), DEPOSIT_AMOUNT);
+
+        assertEq(vault.getBalance(creator, address(token)), 0);
+        assertEq(token.balanceOf(creator), balanceBefore + DEPOSIT_AMOUNT);
+    }
+
+    function test_Withdraw_Partial() public {
+        _depositAsProcessor(creator, DEPOSIT_AMOUNT);
+
+        vm.prank(creator);
+        vault.withdraw(address(token), DEPOSIT_AMOUNT / 2);
+
+        assertEq(vault.getBalance(creator, address(token)), DEPOSIT_AMOUNT / 2);
+    }
+
+    function test_WithdrawAll_Success() public {
+        _depositAsProcessor(creator, DEPOSIT_AMOUNT);
+
+        vm.prank(creator);
+        vault.withdrawAll(address(token));
+
+        assertEq(vault.getBalance(creator, address(token)), 0);
+    }
+
+    function test_Withdraw_RevertNotVaultOwner() public {
+        _depositAsProcessor(creator, DEPOSIT_AMOUNT);
+
+        vm.prank(address(0x999));
+        vm.expectRevert(ICreatorVault.NotVaultOwner.selector);
+        vault.withdraw(address(token), DEPOSIT_AMOUNT);
+    }
+
+    function test_Withdraw_RevertInsufficientBalance() public {
+        _depositAsProcessor(creator, DEPOSIT_AMOUNT);
+
+        vm.prank(creator);
+        vm.expectRevert(ICreatorVault.InsufficientVaultBalance.selector);
+        vault.withdraw(address(token), DEPOSIT_AMOUNT * 2);
+    }
+
+    function test_Withdraw_UpdatesRevenueStats() public {
+        _depositAsProcessor(creator, DEPOSIT_AMOUNT);
+
+        vm.prank(creator);
+        vault.withdraw(address(token), DEPOSIT_AMOUNT);
+
+        ICreatorVault.RevenueStats memory stats = vault.getRevenueStats(creator);
+        assertEq(stats.totalRevenue, DEPOSIT_AMOUNT);
+        assertEq(stats.pendingBalance, 0);
+        assertEq(stats.totalWithdrawn, DEPOSIT_AMOUNT);
+    }
+
+    function test_SetWithdrawalAddress_Success() public {
+        vault.createVault(creator);
+        address newRecipient = address(0x123);
+
+        vm.prank(creator);
+        vault.setWithdrawalAddress(newRecipient);
+
+        assertEq(vault.getWithdrawalAddress(creator), newRecipient);
+    }
+
+    function test_SetWithdrawalAddress_RevertZero() public {
+        vault.createVault(creator);
+
+        vm.prank(creator);
+        vm.expectRevert(ICreatorVault.InvalidWithdrawalAddress.selector);
+        vault.setWithdrawalAddress(address(0));
+    }
 }
