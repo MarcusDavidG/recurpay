@@ -143,4 +143,61 @@ contract RecurPayRouter is RecurPayBase {
     function hasActiveSubscription(uint256 planId) external view returns (bool) {
         return subscriberRegistry.hasActiveSubscription(msg.sender, planId);
     }
+
+    // ========================================================================
+    // External Functions - Creator Actions
+    // ========================================================================
+
+    /// @notice Create a new subscription plan
+    function createPlan(
+        ISubscriptionFactory.PlanConfig calldata config,
+        ISubscriptionFactory.PlanMetadata calldata metadata
+    ) external nonReentrant whenNotPaused returns (uint256 planId) {
+        return subscriptionFactory.createPlan(config, metadata);
+    }
+
+    /// @notice Update plan price
+    function updatePlanPrice(uint256 planId, uint256 newPrice) external nonReentrant {
+        subscriptionFactory.updatePlanPrice(planId, newPrice);
+    }
+
+    /// @notice Activate or deactivate a plan
+    function setPlanActive(uint256 planId, bool active) external nonReentrant {
+        subscriptionFactory.setPlanActive(planId, active);
+    }
+
+    /// @notice Withdraw creator revenue
+    function withdrawRevenue(address token, uint256 amount) external nonReentrant {
+        creatorVault.withdraw(token, amount);
+    }
+
+    /// @notice Withdraw all creator revenue for a token
+    function withdrawAllRevenue(address token) external nonReentrant {
+        creatorVault.withdrawAll(token);
+    }
+
+    /// @notice Set withdrawal address for revenue
+    function setWithdrawalAddress(address recipient) external nonReentrant {
+        creatorVault.setWithdrawalAddress(recipient);
+    }
+
+    /// @notice Configure auto-withdrawal
+    function configureAutoWithdrawal(bool enabled, uint256 threshold) external nonReentrant {
+        creatorVault.configureAutoWithdrawal(enabled, threshold);
+    }
+
+    /// @notice Get creator\'s plans
+    function getCreatorPlans(address creator) external view returns (uint256[] memory) {
+        return subscriptionFactory.getCreatorPlans(creator);
+    }
+
+    /// @notice Get creator\'s revenue stats
+    function getCreatorRevenue(address creator) external view returns (ICreatorVault.RevenueStats memory) {
+        return creatorVault.getRevenueStats(creator);
+    }
+
+    /// @notice Get creator\'s token balance
+    function getCreatorBalance(address creator, address token) external view returns (uint256) {
+        return creatorVault.getBalance(creator, token);
+    }
 }
