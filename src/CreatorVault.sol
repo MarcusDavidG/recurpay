@@ -182,4 +182,34 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
 
         emit FundsWithdrawn(creator, token, amount, recipient);
     }
+
+    // ========================================================================
+    // External Functions - Withdrawals
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function withdraw(address token, uint256 amount) external nonReentrant onlyVaultOwner(msg.sender) {
+        if (amount == 0) revert RecurPayErrors.ZeroAmount();
+        if (_balances[msg.sender][token] < amount) revert ICreatorVault.InsufficientVaultBalance();
+
+        _executeWithdrawal(msg.sender, token, amount);
+    }
+
+    /// @inheritdoc ICreatorVault
+    function withdrawAll(address token) external nonReentrant onlyVaultOwner(msg.sender) {
+        uint256 balance = _balances[msg.sender][token];
+        if (balance == 0) revert ICreatorVault.InsufficientVaultBalance();
+
+        _executeWithdrawal(msg.sender, token, balance);
+    }
+
+    /// @inheritdoc ICreatorVault
+    function setWithdrawalAddress(address recipient) external onlyVaultOwner(msg.sender) {
+        if (recipient == address(0)) revert ICreatorVault.InvalidWithdrawalAddress();
+
+        address oldRecipient = _withdrawalAddresses[msg.sender];
+        _withdrawalAddresses[msg.sender] = recipient;
+
+        emit WithdrawalAddressUpdated(msg.sender, oldRecipient, recipient);
+    }
 }
