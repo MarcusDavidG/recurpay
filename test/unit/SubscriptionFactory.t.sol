@@ -126,4 +126,77 @@ contract SubscriptionFactoryTest is Test {
         vm.expectRevert(ISubscriptionFactory.UnsupportedPaymentToken.selector);
         factory.createPlan(config, metadata);
     }
+
+    // =========================================================================
+    // Plan Update Tests
+    // =========================================================================
+
+    function test_UpdatePlanPrice_Success() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+        uint256 planId = factory.createPlan(config, metadata);
+
+        uint256 newPrice = 20 ether;
+        vm.prank(creator);
+        factory.updatePlanPrice(planId, newPrice);
+
+        ISubscriptionFactory.PlanConfig memory storedConfig = factory.getPlan(planId);
+        assertEq(storedConfig.price, newPrice);
+    }
+
+    function test_UpdatePlanPrice_RevertNotCreator() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+        uint256 planId = factory.createPlan(config, metadata);
+
+        vm.prank(user);
+        vm.expectRevert(ISubscriptionFactory.NotPlanCreator.selector);
+        factory.updatePlanPrice(planId, 20 ether);
+    }
+
+    function test_UpdatePlanPrice_RevertZeroPrice() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+        uint256 planId = factory.createPlan(config, metadata);
+
+        vm.prank(creator);
+        vm.expectRevert(ISubscriptionFactory.InvalidPrice.selector);
+        factory.updatePlanPrice(planId, 0);
+    }
+
+    function test_SetPlanActive_Deactivate() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+        uint256 planId = factory.createPlan(config, metadata);
+
+        vm.prank(creator);
+        factory.setPlanActive(planId, false);
+
+        ISubscriptionFactory.PlanConfig memory storedConfig = factory.getPlan(planId);
+        assertFalse(storedConfig.active);
+    }
+
+    function test_SetPlanActive_Reactivate() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+        uint256 planId = factory.createPlan(config, metadata);
+
+        vm.startPrank(creator);
+        factory.setPlanActive(planId, false);
+        factory.setPlanActive(planId, true);
+        vm.stopPrank();
+
+        ISubscriptionFactory.PlanConfig memory storedConfig = factory.getPlan(planId);
+        assertTrue(storedConfig.active);
+    }
+
+    function test_SetPlanActive_RevertNotCreator() public {
+        ISubscriptionFactory.PlanConfig memory config = _createDefaultPlanConfig();
+        ISubscriptionFactory.PlanMetadata memory metadata = _createDefaultPlanMetadata();
+        uint256 planId = factory.createPlan(config, metadata);
+
+        vm.prank(user);
+        vm.expectRevert(ISubscriptionFactory.NotPlanCreator.selector);
+        factory.setPlanActive(planId, false);
+    }
 }
