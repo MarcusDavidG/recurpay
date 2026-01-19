@@ -212,4 +212,48 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
 
         emit WithdrawalAddressUpdated(msg.sender, oldRecipient, recipient);
     }
+
+    // ========================================================================
+    // External Functions - Balance Queries
+    // ========================================================================
+
+    /// @inheritdoc ICreatorVault
+    function getBalance(address creator, address token) external view returns (uint256 balance) {
+        return _balances[creator][token];
+    }
+
+    /// @inheritdoc ICreatorVault
+    function getAllBalances(address creator) external view returns (TokenBalance[] memory balances) {
+        address[] memory tokens = _creatorTokens[creator];
+        uint256 count = 0;
+
+        // Count non-zero balances
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (_balances[creator][tokens[i]] > 0) {
+                count++;
+            }
+        }
+
+        balances = new TokenBalance[](count);
+        uint256 index = 0;
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 bal = _balances[creator][tokens[i]];
+            if (bal > 0) {
+                balances[index] = TokenBalance({
+                    token: tokens[i],
+                    balance: bal,
+                    lastUpdated: uint64(block.timestamp)
+                });
+                index++;
+            }
+        }
+
+        return balances;
+    }
+
+    /// @inheritdoc ICreatorVault
+    function getWithdrawalAddress(address creator) external view returns (address recipient) {
+        return _withdrawalAddresses[creator];
+    }
 }
