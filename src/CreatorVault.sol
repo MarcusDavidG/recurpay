@@ -214,7 +214,8 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         _executeWithdrawal(msg.sender, token, balance);
     }
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Sets the withdrawal address for a creator's vault.
+    /// @param recipient The new address to which funds will be withdrawn.
     function setWithdrawalAddress(address recipient) external onlyVaultOwner(msg.sender) {
         if (recipient == address(0)) revert ICreatorVault.InvalidWithdrawalAddress();
 
