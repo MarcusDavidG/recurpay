@@ -205,7 +205,8 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         _executeWithdrawal(msg.sender, token, amount);
     }
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Withdraws all available balance of a specific token from the creator's vault.
+    /// @param token The address of the token to withdraw (address(0) for ETH).
     function withdrawAll(address token) external nonReentrant onlyVaultOwner(msg.sender) {
         uint256 balance = _balances[msg.sender][token];
         if (balance == 0) revert ICreatorVault.InsufficientVaultBalance();
