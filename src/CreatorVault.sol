@@ -106,7 +106,7 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
     // Modifiers
     // ========================================================================
 
-    /// @notice Ensures caller is the payment processor
+    /// @notice Ensures the caller is the payment processor.
     modifier onlyProcessor() {
         if (msg.sender != paymentProcessor) revert RecurPayErrors.NotProcessor();
         _;
