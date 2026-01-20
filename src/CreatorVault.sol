@@ -324,8 +324,8 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         return _vaultIds[creator];
     }
 
-    /// @notice Returns total number of vaults created
-    /// @return count Total vault count
+    /// @notice Returns the total number of vaults created.
+    /// @return count Total vault count.
     function totalVaults() external view returns (uint256 count) {
         return _vaultCounter;
     }
