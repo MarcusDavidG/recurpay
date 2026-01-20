@@ -44,7 +44,10 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
     // External Functions - Subscription Management
     // =========================================================================
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Subscribes a user to a subscription plan.
+    /// @param planId The ID of the plan to subscribe to.
+    /// @param subscriber The address of the user subscribing.
+    /// @return subscriptionId The ID of the newly created subscription.
     function subscribe(
         uint256 planId,
         address subscriber
@@ -98,7 +101,9 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         return subscriptionId;
     }
     
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Pauses a subscription.
+    /// @param subscriptionId The ID of the subscription to pause.
+    /// @param pauseDuration The duration to pause the subscription for. If 0, the subscription is paused indefinitely.
     function pause(uint256 subscriptionId, uint32 pauseDuration)
         external
         nonReentrant
@@ -116,7 +121,8 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         emit ISubscriberRegistry.SubscriptionPaused(subscriptionId, pausedUntil);
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Resumes a paused subscription.
+    /// @param subscriptionId The ID of the subscription to resume.
     function resume(uint256 subscriptionId)
         external
         nonReentrant
@@ -133,7 +139,8 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         emit ISubscriberRegistry.SubscriptionResumed(subscriptionId);
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Cancels a subscription.
+    /// @param subscriptionId The ID of the subscription to cancel.
     function cancel(uint256 subscriptionId)
         external
         nonReentrant
@@ -151,7 +158,9 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         emit ISubscriberRegistry.SubscriptionCancelled(subscriptionId, "USER", 0);
     }
     
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Updates the status of a subscription. Can only be called by the payment processor.
+    /// @param subscriptionId The ID of the subscription to update.
+    /// @param newStatus The new status of the subscription.
     function updateStatus(uint256 subscriptionId, SubscriptionStatus newStatus)
         external
         nonReentrant
@@ -174,7 +183,9 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         emit ISubscriberRegistry.SubscriptionStatusChanged(subscriptionId, oldStatus, newStatus);
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Records a payment for a subscription. Can only be called by the payment processor.
+    /// @param subscriptionId The ID of the subscription to record a payment for.
+    /// @param amount The amount of the payment.
     function recordPayment(uint256 subscriptionId, uint256 amount)
         external
         nonReentrant
@@ -200,7 +211,8 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
     // External Functions - Configuration
     // =========================================================================
 
-    /// @notice Sets the authorized payment processor address
+    /// @notice Sets the authorized payment processor address.
+    /// @param newProcessor The address of the new payment processor.
     function setProcessor(address newProcessor) external onlyOwner {
         if (newProcessor == address(0)) revert RecurPayErrors.ZeroAddress();
         processor = newProcessor;
@@ -211,7 +223,9 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
     // External Functions - View
     // =========================================================================
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Gets the details of a subscription.
+    /// @param subscriptionId The ID of the subscription to retrieve.
+    /// @return subscription The details of the subscription.
     function getSubscription(
         uint256 subscriptionId
     ) external view returns (Subscription memory subscription) {
@@ -219,14 +233,18 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         return _subscriptions[subscriptionId];
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Gets the IDs of all subscriptions for a specific subscriber.
+    /// @param subscriber The address of the subscriber.
+    /// @return subscriptionIds An array of subscription IDs.
     function getSubscriberSubscriptions(
         address subscriber
     ) external view returns (uint256[] memory subscriptionIds) {
         return _subscriberSubscriptions[subscriber];
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Gets the IDs of all active subscriptions for a specific subscriber.
+    /// @param subscriber The address of the subscriber.
+    /// @return subscriptionIds An array of active subscription IDs.
     function getActiveSubscriptions(
         address subscriber
     ) external view returns (uint256[] memory subscriptionIds) {
@@ -252,26 +270,35 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         return activeSubscriptions;
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Gets the profile of a subscriber.
+    /// @param subscriber The address of the subscriber.
+    /// @return profile The profile of the subscriber.
     function getSubscriberProfile(
         address subscriber
     ) external view returns (SubscriberProfile memory profile) {
         return _subscriberProfiles[subscriber];
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Gets the addresses of all subscribers to a specific plan.
+    /// @param planId The ID of the plan.
+    /// @return subscribers An array of subscriber addresses.
     function getPlanSubscribers(
         uint256 planId
     ) external view returns (address[] memory subscribers) {
         return _planSubscribers[planId];
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Gets the number of subscribers to a specific plan.
+    /// @param planId The ID of the plan.
+    /// @return count The number of subscribers.
     function getPlanSubscriberCount(uint256 planId) external view returns (uint256 count) {
         return _planSubscribers[planId].length;
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Checks if a subscriber has an active subscription to a specific plan.
+    /// @param subscriber The address of the subscriber.
+    /// @param planId The ID of the plan.
+    /// @return isActive True if the subscriber has an active subscription, false otherwise.
     function hasActiveSubscription(
         address subscriber,
         uint256 planId
@@ -281,7 +308,8 @@ contract SubscriberRegistry is ISubscriberRegistry, RecurPayBase {
         return _subscriptions[subscriptionId].status == SubscriptionStatus.Active;
     }
 
-    /// @inheritdoc ISubscriberRegistry
+    /// @notice Gets the total number of subscriptions created.
+    /// @return count The total number of subscriptions.
     function totalSubscriptions() external view returns (uint256 count) {
         return _subscriptionCounter;
     }
