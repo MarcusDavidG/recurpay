@@ -233,6 +233,9 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     // ========================================================================
 
     /// @inheritdoc IPaymentProcessor
+    /// @notice Processes a batch of subscription payments.
+    /// @param subscriptionIds An array of subscription IDs to process.
+    /// @return result A struct containing the number of processed, succeeded, failed payments, and total amount.
     function processBatch(
         uint256[] calldata subscriptionIds
     ) external nonReentrant whenNotPaused returns (BatchResult memory result) {
