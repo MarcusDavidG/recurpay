@@ -405,10 +405,10 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         return history[history.length - 1];
     }
 
-    /// @notice Calculates the fee breakdown for a payment
-    /// @param amount Total payment amount
-    /// @return protocolFee Fee going to protocol
-    /// @return creatorAmount Amount going to creator
+    /// @notice Calculates the fee breakdown for a given payment amount.
+    /// @param amount The total payment amount.
+    /// @return protocolFee The fee portion allocated to the protocol.
+    /// @return creatorAmount The remaining amount allocated to the creator.
     function calculateFees(uint256 amount) external view returns (uint256 protocolFee, uint256 creatorAmount) {
         protocolFee = PercentageMath.calculatePercentage(amount, _protocolFeeBps);
         creatorAmount = amount - protocolFee;
