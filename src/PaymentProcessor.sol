@@ -147,6 +147,8 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     // ========================================================================
 
     /// @inheritdoc IPaymentProcessor
+    /// @notice Processes a single subscription payment.
+    /// @return success True if the payment was processed successfully, false otherwise.
     function processPayment(uint256 subscriptionId) external nonReentrant whenNotPaused returns (bool success) {
         return _processPayment(subscriptionId);
     }
