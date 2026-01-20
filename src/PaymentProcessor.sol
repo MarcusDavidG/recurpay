@@ -415,6 +415,6 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         return (protocolFee, creatorAmount);
     }
 
-    /// @notice Allows contract to receive ETH
+    /// @notice Allows the contract to receive ETH.
     receive() external payable {}
 }
