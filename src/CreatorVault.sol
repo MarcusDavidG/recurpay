@@ -112,7 +112,8 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         _;
     }
 
-    /// @notice Ensures caller owns the vault
+    /// @notice Ensures the caller owns the vault.
+    /// @param creator Address of the vault owner.
     modifier onlyVaultOwner(address creator) {
         if (msg.sender != creator) revert ICreatorVault.NotVaultOwner();
         if (!_hasVault[creator]) revert ICreatorVault.VaultNotFound();
