@@ -79,7 +79,9 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
     // External Functions - Vault Management
     // ========================================================================
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Creates a new vault for a creator.
+    /// @param creator The address of the creator for whom to create the vault.
+    /// @return vaultId The ID of the newly created vault.
     function createVault(address creator) external returns (uint256 vaultId) {
         if (creator == address(0)) revert RecurPayErrors.ZeroAddress();
         if (_hasVault[creator]) revert RecurPayErrors.VaultAlreadyExists();
