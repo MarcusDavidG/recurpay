@@ -237,7 +237,9 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         return _balances[creator][token];
     }
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Gets all non-zero token balances for a creator's vault.
+    /// @param creator The address of the creator.
+    /// @return balances An array of TokenBalance structs, each containing token address and its balance.
     function getAllBalances(address creator) external view returns (TokenBalance[] memory balances) {
         address[] memory tokens = _creatorTokens[creator];
         uint256 count = 0;
