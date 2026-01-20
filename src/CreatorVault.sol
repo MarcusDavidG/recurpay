@@ -316,9 +316,9 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         _revenueStats[creator].subscriberCount = count;
     }
 
-    /// @notice Gets the vault ID for a creator
-    /// @param creator Creator address
-    /// @return vaultId The vault identifier
+    /// @notice Gets the vault ID for a creator.
+    /// @param creator The address of the creator.
+    /// @return vaultId The vault identifier.
     function getVaultId(address creator) external view returns (uint256 vaultId) {
         if (!_hasVault[creator]) revert ICreatorVault.VaultNotFound();
         return _vaultIds[creator];
