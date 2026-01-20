@@ -346,6 +346,9 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     }
 
     /// @inheritdoc IPaymentProcessor
+    /// @notice Gets the due date of the next payment for a subscription.
+    /// @param subscriptionId The ID of the subscription.
+    /// @return dueDate The timestamp of the next payment due date.
     function getNextPaymentDue(uint256 subscriptionId) external view returns (uint64 dueDate) {
         ISubscriberRegistry.Subscription memory sub = subscriberRegistry.getSubscription(subscriptionId);
         return sub.currentPeriodEnd;
