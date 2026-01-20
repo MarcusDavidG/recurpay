@@ -67,8 +67,8 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
     // Admin Functions
     // ========================================================================
 
-    /// @notice Sets the authorized payment processor
-    /// @param processor Address of the PaymentProcessor contract
+    /// @notice Sets the authorized payment processor.
+    /// @param processor Address of the PaymentProcessor contract.
     function setPaymentProcessor(address processor) external onlyOwner {
         if (processor == address(0)) revert RecurPayErrors.ZeroAddress();
         paymentProcessor = processor;
