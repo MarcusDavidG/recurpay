@@ -135,9 +135,9 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         emit ProtocolFeesWithdrawn(token, amount);
     }
 
-    /// @notice Gets accumulated protocol fees for a token
-    /// @param token Token address
-    /// @return amount Accumulated fees
+    /// @notice Gets accumulated protocol fees for a specific token.
+    /// @param token The address of the token.
+    /// @return amount The accumulated fees.
     function getAccumulatedFees(address token) external view returns (uint256 amount) {
         return _protocolFees[token];
     }
