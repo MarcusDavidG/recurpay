@@ -111,7 +111,8 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         emit TreasuryUpdated(oldTreasury, newTreasury);
     }
 
-    /// @inheritdoc IPaymentProcessor
+    /// @notice Returns the current protocol fee in basis points.
+    /// @return feeBps The protocol fee in basis points.
     function protocolFeeBps() external view returns (uint16 feeBps) {
         return _protocolFeeBps;
     }
