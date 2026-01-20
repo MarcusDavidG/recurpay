@@ -388,9 +388,9 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         return _paymentHistory[subscriptionId].length;
     }
 
-    /// @notice Gets the last payment for a subscription
-    /// @param subscriptionId Subscription to query
-    /// @return payment Last payment execution
+    /// @notice Gets the most recent payment record for a subscription.
+    /// @param subscriptionId The subscription to query.
+    /// @return payment The last payment execution record.
     function getLastPayment(uint256 subscriptionId) external view returns (PaymentExecution memory payment) {
         PaymentExecution[] storage history = _paymentHistory[subscriptionId];
         if (history.length == 0) {
