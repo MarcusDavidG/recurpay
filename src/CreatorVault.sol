@@ -229,7 +229,10 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
     // External Functions - Balance Queries
     // ========================================================================
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Gets the balance of a specific token for a creator's vault.
+    /// @param creator The address of the creator.
+    /// @param token The address of the token (address(0) for ETH).
+    /// @return balance The balance of the token.
     function getBalance(address creator, address token) external view returns (uint256 balance) {
         return _balances[creator][token];
     }
