@@ -355,6 +355,10 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     }
 
     /// @inheritdoc IPaymentProcessor
+    /// @notice Gets the payment history for a subscription.
+    /// @param subscriptionId The ID of the subscription.
+    /// @param limit The maximum number of payment records to return.
+    /// @return payments An array of PaymentExecution structs.
     function getPaymentHistory(
         uint256 subscriptionId,
         uint256 limit
