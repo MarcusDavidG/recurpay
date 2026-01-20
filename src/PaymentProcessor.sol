@@ -100,8 +100,8 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         emit ProtocolFeeUpdated(oldFee, newFeeBps);
     }
 
-    /// @notice Updates the treasury address
-    /// @param newTreasury New treasury address
+    /// @notice Updates the treasury address.
+    /// @param newTreasury The new treasury address.
     function setTreasury(address newTreasury) external onlyOwner {
         if (newTreasury == address(0)) revert RecurPayErrors.ZeroAddress();
 
