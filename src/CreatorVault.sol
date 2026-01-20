@@ -95,7 +95,9 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         return vaultId;
     }
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Checks if a creator has a vault.
+    /// @param creator The address of the creator.
+    /// @return exists True if the creator has a vault, false otherwise.
     function hasVault(address creator) external view returns (bool exists) {
         return _hasVault[creator];
     }
