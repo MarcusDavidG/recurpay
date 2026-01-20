@@ -89,7 +89,8 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     // Admin Functions
     // ========================================================================
 
-    /// @inheritdoc IPaymentProcessor
+    /// @notice Sets the protocol fee in basis points.
+    /// @param newFeeBps The new protocol fee in basis points (e.g., 100 for 1%).
     function setProtocolFee(uint16 newFeeBps) external onlyOwner {
         if (newFeeBps > MAX_FEE_BPS) revert IPaymentProcessor.FeeTooHigh();
 
