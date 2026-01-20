@@ -269,7 +269,9 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         return balances;
     }
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Gets the withdrawal address configured for a creator's vault.
+    /// @param creator The address of the creator.
+    /// @return recipient The withdrawal address.
     function getWithdrawalAddress(address creator) external view returns (address recipient) {
         return _withdrawalAddresses[creator];
     }
