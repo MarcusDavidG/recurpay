@@ -117,8 +117,8 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         return _protocolFeeBps;
     }
 
-    /// @notice Withdraws accumulated protocol fees
-    /// @param token Token to withdraw (address(0) for ETH)
+    /// @notice Withdraws accumulated protocol fees for a specific token to the treasury.
+    /// @param token The address of the token to withdraw (address(0) for ETH).
     function withdrawProtocolFees(address token) external onlyOwner nonReentrant {
         uint256 amount = _protocolFees[token];
         if (amount == 0) revert RecurPayErrors.ZeroAmount();
