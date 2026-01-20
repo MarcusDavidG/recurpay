@@ -280,15 +280,17 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     // Internal Functions - Grace Period
     // ========================================================================
 
-    /// @notice Handles payment failure with grace period logic
-        /// @notice Handles payment failure with grace period logic
-    function _handlePaymentFailure(
-        uint256 subscriptionId,
-        ISubscriberRegistry.Subscription memory sub,
-        ISubscriptionFactory.PlanConfig memory plan,
-        bytes4 reason
-    ) internal {
-        // Record failed payment
+        /// @notice Handles payment failure with grace period logic.
+        /// @param subscriptionId The ID of the subscription that failed payment.
+        /// @param sub The subscription struct.
+        /// @param plan The plan config struct.
+        /// @param reason The selector of the failure reason.
+        function _handlePaymentFailure(
+            uint256 subscriptionId,
+            ISubscriberRegistry.Subscription memory sub,
+            ISubscriptionFactory.PlanConfig memory plan,
+            bytes4 reason
+        ) internal {        // Record failed payment
         _paymentHistory[subscriptionId].push(PaymentExecution({
             subscriptionId: subscriptionId,
             amount: plan.price,
