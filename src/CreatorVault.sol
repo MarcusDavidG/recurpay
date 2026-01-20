@@ -123,7 +123,11 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
     // External Functions - Deposits
     // ========================================================================
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Deposits funds into a creator's vault. Only callable by the payment processor.
+    /// @param creator The address of the creator.
+    /// @param token The address of the token being deposited (address(0) for ETH).
+    /// @param amount The amount of tokens or ETH to deposit.
+    /// @param subscriptionId The ID of the subscription associated with the deposit.
     function deposit(
         address creator,
         address token,
