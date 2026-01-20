@@ -381,9 +381,9 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         return payments;
     }
 
-    /// @notice Gets the total number of payments for a subscription
-    /// @param subscriptionId Subscription to query
-    /// @return count Total payment count
+    /// @notice Gets the total number of payments recorded for a subscription.
+    /// @param subscriptionId The subscription to query.
+    /// @return count Total payment count.
     function getPaymentCount(uint256 subscriptionId) external view returns (uint256 count) {
         return _paymentHistory[subscriptionId].length;
     }
