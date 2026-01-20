@@ -323,6 +323,10 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
     // ========================================================================
 
     /// @inheritdoc IPaymentProcessor
+    /// @notice Checks if a payment is due for a subscription.
+    /// @param subscriptionId The ID of the subscription to check.
+    /// @return isDue True if the payment is due, false otherwise.
+    /// @return dueAmount The amount due if payment is due, 0 otherwise.
     function isPaymentDue(
         uint256 subscriptionId
     ) external view returns (bool isDue, uint256 dueAmount) {
