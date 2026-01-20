@@ -260,10 +260,10 @@ contract PaymentProcessor is IPaymentProcessor, RecurPayBase {
         return result;
     }
 
-    /// @notice Internal function for batch processing (allows try/catch)
-    /// @param subscriptionId Subscription to process
-    /// @return success Whether payment succeeded
-    /// @return amount Amount collected
+    /// @notice Internal function for batch processing (allows try/catch).
+    /// @param subscriptionId Subscription to process.
+    /// @return success Whether payment succeeded.
+    /// @return amount Amount collected.
     function processPaymentInternal(uint256 subscriptionId) external returns (bool success, uint256 amount) {
         require(msg.sender == address(this), "Internal only");
 
