@@ -280,7 +280,9 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
     // External Functions - Auto-Withdrawal
     // ========================================================================
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Configures the automatic withdrawal settings for a creator's vault.
+    /// @param enabled Whether to enable or disable auto-withdrawal.
+    /// @param threshold The minimum balance required to trigger an auto-withdrawal.
     function configureAutoWithdrawal(bool enabled, uint256 threshold) external onlyVaultOwner(msg.sender) {
         _autoWithdrawEnabled[msg.sender] = enabled;
         _autoWithdrawThreshold[msg.sender] = threshold;
