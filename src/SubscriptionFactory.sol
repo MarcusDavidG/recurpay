@@ -37,7 +37,10 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
     // External Functions - Plan Creation
     // =========================================================================
 
-    /// @inheritdoc ISubscriptionFactory
+    /// @notice Creates a new subscription plan.
+    /// @param config The configuration for the new plan.
+    /// @param metadata The metadata for the new plan.
+    /// @return planId The ID of the newly created plan.
     function createPlan(
         PlanConfig calldata config,
         PlanMetadata calldata metadata
@@ -82,7 +85,9 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
     // External Functions - Plan Management
     // =========================================================================
 
-    /// @inheritdoc ISubscriptionFactory
+    /// @notice Updates the price of a subscription plan.
+    /// @param planId The ID of the plan to update.
+    /// @param newPrice The new price for the plan.
     function updatePlanPrice(uint256 planId, uint256 newPrice)
         external
         nonReentrant
@@ -96,7 +101,9 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
         emit ISubscriptionFactory.PlanUpdated(planId, newPrice, _plans[planId].active);
     }
 
-    /// @inheritdoc ISubscriptionFactory
+    /// @notice Sets a subscription plan as active or inactive.
+    /// @param planId The ID of the plan to update.
+    /// @param active The new active status for the plan.
     function setPlanActive(uint256 planId, bool active)
         external
         nonReentrant
@@ -132,23 +139,30 @@ contract SubscriptionFactory is ISubscriptionFactory, RecurPayBase {
     // External Functions - View
     // =========================================================================
 
-    /// @inheritdoc ISubscriptionFactory
+    /// @notice Gets the configuration of a subscription plan.
+    /// @param planId The ID of the plan to retrieve.
+    /// @return config The configuration of the plan.
     function getPlan(uint256 planId) external view returns (PlanConfig memory config) {
         if (_plans[planId].creator == address(0)) revert ISubscriptionFactory.PlanNotFound();
         return _plans[planId];
     }
     
-    /// @inheritdoc ISubscriptionFactory
+    /// @notice Gets the metadata of a subscription plan.
+    /// @param planId The ID of the plan to retrieve.
+    /// @return metadata The metadata of the plan.
     function getPlanMetadata(uint256 planId) external view returns (PlanMetadata memory metadata) {
         return _planMetadata[planId];
     }
 
-    /// @inheritdoc ISubscriptionFactory
+    /// @notice Gets the IDs of all plans created by a specific creator.
+    /// @param creator The address of the creator.
+    /// @return planIds An array of plan IDs.
     function getCreatorPlans(address creator) external view returns (uint256[] memory planIds) {
         return _creatorPlans[creator];
     }
 
-    /// @inheritdoc ISubscriptionFactory
+    /// @notice Gets the total number of subscription plans created.
+    /// @return count The total number of plans.
     function totalPlans() external view returns (uint256 count) {
         return _planCounter;
     }
