@@ -330,6 +330,6 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         return _vaultCounter;
     }
 
-    /// @notice Allows contract to receive ETH
+    /// @notice Allows the contract to receive ETH.
     receive() external payable {}
 }
