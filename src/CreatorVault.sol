@@ -302,7 +302,9 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
     // External Functions - Revenue Statistics
     // ========================================================================
 
-    /// @inheritdoc ICreatorVault
+    /// @notice Gets the revenue statistics for a creator.
+    /// @param creator The address of the creator.
+    /// @return stats The revenue statistics of the creator.
     function getRevenueStats(address creator) external view returns (RevenueStats memory stats) {
         return _revenueStats[creator];
     }
