@@ -309,9 +309,9 @@ contract CreatorVault is ICreatorVault, RecurPayBase {
         return _revenueStats[creator];
     }
 
-    /// @notice Updates subscriber count for a creator (called by registry)
-    /// @param creator Creator address
-    /// @param count New subscriber count
+    /// @notice Updates the subscriber count for a creator. Can only be called by the payment processor.
+    /// @param creator The address of the creator.
+    /// @param count The new subscriber count.
     function updateSubscriberCount(address creator, uint32 count) external onlyProcessor {
         _revenueStats[creator].subscriberCount = count;
     }
