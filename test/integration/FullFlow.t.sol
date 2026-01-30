@@ -9,6 +9,7 @@ import {PaymentProcessor} from "src/PaymentProcessor.sol";
 import {RecurPayRouter} from "src/RecurPayRouter.sol";
 import {ISubscriptionFactory} from "src/interfaces/ISubscriptionFactory.sol";
 import {ISubscriberRegistry} from "src/interfaces/ISubscriberRegistry.sol";
+import {ICreatorVault} from "src/interfaces/ICreatorVault.sol";
 import {MockERC20} from "test/mocks/MockERC20.sol";
 
 contract FullFlowTest is Test {
