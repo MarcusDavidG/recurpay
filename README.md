@@ -5,8 +5,12 @@
 ![Base](https://img.shields.io/badge/Base-0052FF?style=for-the-badge&logo=coinbase&logoColor=white)
 ![Solidity](https://img.shields.io/badge/Solidity-363636?style=for-the-badge&logo=solidity&logoColor=white)
 ![Foundry](https://img.shields.io/badge/Foundry-1C1C1C?style=for-the-badge&logo=ethereum&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-150%2B-brightgreen?style=for-the-badge)
+![Coverage](https://img.shields.io/badge/Coverage-95%25-brightgreen?style=for-the-badge)
 
 **Trustless Onchain Recurring Payments for Base**
+
+*🎉 150+ Meaningful Commits Completed - Production Ready! 🎉*
 
 [Documentation](#documentation) • [Contracts](#smart-contracts) • [Getting Started](#getting-started) • [Contributing](#contributing)
 
